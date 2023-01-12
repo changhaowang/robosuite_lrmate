@@ -121,7 +121,6 @@ if __name__ == "__main__":
         horizon=(steps_per_action + steps_per_rest) * num_test_steps,
         control_freq=20,
     )
-    env.render()
     env.reset()
     env.viewer.set_camera(camera_id=0)
 
