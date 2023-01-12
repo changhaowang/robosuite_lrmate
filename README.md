@@ -1,4 +1,4 @@
-# robosuite
+# robosuite with lrmate
 
 ![gallery of_environments](docs/images/gallery.png)
 
