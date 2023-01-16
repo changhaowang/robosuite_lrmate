@@ -32,6 +32,8 @@ class Controller(object, metaclass=abc.ABCMeta):
         self,
         sim,
         eef_name,
+        ee_force_sensor_name,
+        ee_torque_sensor_name,
         joint_indexes,
         actuator_range,
     ):
@@ -67,6 +69,10 @@ class Controller(object, metaclass=abc.ABCMeta):
         self.ee_ori_vel = None
         self.joint_pos = None
         self.joint_vel = None
+
+        # measurement states (F/T sensor)
+        self.ee_force = None
+        self.ee_torque = None
 
         # dynamics and kinematics
         self.J_pos = None
@@ -156,6 +162,9 @@ class Controller(object, metaclass=abc.ABCMeta):
             mujoco.mj_fullM(self.sim.model._model, mass_matrix, self.sim.data.qM)
             mass_matrix = np.reshape(mass_matrix, (len(self.sim.data.qvel), len(self.sim.data.qvel)))
             self.mass_matrix = mass_matrix[self.qvel_index, :][:, self.qvel_index]
+
+            # For admittance control, also update ee_force, ee_torque
+            self.ee_force = 
 
             # Clear self.new_update
             self.new_update = False

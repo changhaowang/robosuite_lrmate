@@ -126,6 +126,8 @@ class InverseKinematicsController(JointVelocityController):
         self,
         sim,
         eef_name,
+        ee_force_sensor_name,
+        ee_torque_sensor_name,
         joint_indexes,
         robot_name,
         actuator_range,
@@ -145,6 +147,8 @@ class InverseKinematicsController(JointVelocityController):
         super().__init__(
             sim=sim,
             eef_name=eef_name,
+            ee_force_sensor_name=ee_force_sensor_name,
+            ee_torque_sensor_name=ee_torque_sensor_name,
             joint_indexes=joint_indexes,
             actuator_range=actuator_range,
             input_max=1,

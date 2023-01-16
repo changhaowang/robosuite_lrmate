@@ -109,6 +109,8 @@ class OperationalSpaceAdmittanceController(Controller):
         self,
         sim,
         eef_name,
+        ee_force_sensor_name,
+        ee_torque_sensor_name,
         joint_indexes,
         actuator_range,
         input_max=1,
@@ -128,12 +130,18 @@ class OperationalSpaceAdmittanceController(Controller):
         control_ori=True,
         control_delta=True,
         uncouple_pos_ori=True,
+        m_admittance=[1, 1, 1],
+        I_admittance=[1, 1, 1],
+        kd_admittance=[1, 1, 1],
+        kp_admittance=[1, 1, 1],
         **kwargs,  # does nothing; used so no error raised when dict is passed with extra terms used previously
     ):
 
         super().__init__(
             sim,
             eef_name,
+            ee_force_sensor_name,
+            ee_torque_sensor_name,
             joint_indexes,
             actuator_range,
         )
@@ -162,6 +170,12 @@ class OperationalSpaceAdmittanceController(Controller):
         self.kp_max = self.nums2array(kp_limits[1], 6)
         self.damping_ratio_min = self.nums2array(damping_ratio_limits[0], 6)
         self.damping_ratio_max = self.nums2array(damping_ratio_limits[1], 6)
+
+        # Set desired admittance dynamics
+        self.m_admittance = m_admittance
+        self.I_admittance = I_admittance
+        self.kp_admittance = kp_admittance
+        self.kd_admittance = kd_admittance
 
         # Verify the proposed impedance mode is supported
         assert impedance_mode in IMPEDANCE_MODES, (

@@ -121,6 +121,8 @@ class SingleArm(Manipulator):
         self.controller_config["robot_name"] = self.name
         self.controller_config["sim"] = self.sim
         self.controller_config["eef_name"] = self.gripper.important_sites["grip_site"]
+        self.controller_config["ee_force_sensor_name"] = self.gripper.important_sensors["force_ee"]
+        self.controller_config["ee_torque_sensor_name"] = self.gripper.important_sensors["torque_ee"]
         self.controller_config["eef_rot_offset"] = self.eef_rot_offset
         self.controller_config["joint_indexes"] = {
             "joints": self.joint_indexes,

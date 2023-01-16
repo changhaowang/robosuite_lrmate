@@ -31,7 +31,7 @@ class Lrmate(ManipulatorModel):
 
     @property
     def init_qpos(self):
-        return np.array([0.0, 0.0, 0.0, 0.0, -np.pi/2, 0.0])
+        return np.array([0.0, np.pi/2, np.pi/3, 0.0, -np.pi/2, 0.0])
 
     @property
     def base_xpos_offset(self):
