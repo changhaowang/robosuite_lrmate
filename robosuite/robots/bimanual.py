@@ -133,6 +133,8 @@ class Bimanual(Manipulator):
             self.controller_config[arm]["robot_name"] = self.name
             self.controller_config[arm]["sim"] = self.sim
             self.controller_config[arm]["eef_name"] = self.gripper[arm].important_sites["grip_site"]
+            self.controller_config[arm]["ee_force_sensor_name"] = self.gripper[arm].important_sensors["force_ee"]
+            self.controller_config[arm]["ee_torque_sensor_name"] = self.gripper[arm].important_sensors["torque_ee"]
             self.controller_config[arm]["eef_rot_offset"] = self.eef_rot_offset[arm]
             self.controller_config[arm]["ndim"] = self._joint_split_idx
             self.controller_config[arm]["policy_freq"] = self.control_freq

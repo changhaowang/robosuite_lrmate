@@ -28,6 +28,8 @@ class Controller(object, metaclass=abc.ABCMeta):
     def __init__(self,
                  sim,
                  eef_name,
+                 ee_force_sensor_name,
+                 ee_torque_sensor_name,
                  joint_indexes,
                  actuator_range,
     ):
@@ -52,6 +54,8 @@ class Controller(object, metaclass=abc.ABCMeta):
         self.sim = sim
         self.model_timestep = macros.SIMULATION_TIMESTEP
         self.eef_name = eef_name
+        self.ee_force_sensor_name = ee_force_sensor_name
+        self.ee_torque_sensor_name = ee_torque_sensor_name
         self.joint_index = joint_indexes["joints"]
         self.qpos_index = joint_indexes["qpos"]
         self.qvel_index = joint_indexes["qvel"]
@@ -151,8 +155,26 @@ class Controller(object, metaclass=abc.ABCMeta):
             mass_matrix = np.reshape(mass_matrix, (len(self.sim.data.qvel), len(self.sim.data.qvel)))
             self.mass_matrix = mass_matrix[self.qvel_index, :][:, self.qvel_index]
 
+            # For admittance control, also update ee_force, ee_torque
+            self.ee_force = self.get_sensor_measurement(self.ee_force_sensor_name)
+            self.ee_torque = self.get_sensor_measurement(self.ee_torque_sensor_name)
+
             # Clear self.new_update
             self.new_update = False
+
+    def get_sensor_measurement(self, sensor_name):
+        """
+        Grabs relevant sensor data from the sim object
+
+        Args:
+            sensor_name (str): name of the sensor
+
+        Returns:
+            np.array: sensor values
+        """
+        sensor_idx = np.sum(self.sim.model.sensor_dim[: self.sim.model.sensor_name2id(sensor_name)])
+        sensor_dim = self.sim.model.sensor_dim[self.sim.model.sensor_name2id(sensor_name)]
+        return np.array(self.sim.data.sensordata[sensor_idx : sensor_idx + sensor_dim])
 
     def update_base_pose(self, base_pos, base_ori):
         """

@@ -59,6 +59,8 @@ class JointVelocityController(Controller):
     def __init__(self,
                  sim,
                  eef_name,
+                 ee_force_sensor_name,
+                 ee_torque_sensor_name,
                  joint_indexes,
                  actuator_range,
                  input_max=1,
@@ -75,6 +77,8 @@ class JointVelocityController(Controller):
         super().__init__(
             sim,
             eef_name,
+            ee_force_sensor_name,
+            ee_torque_sensor_name,
             joint_indexes,
             actuator_range,
         )

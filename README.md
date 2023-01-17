@@ -1,4 +1,4 @@
-# robosuite
+# robosuite v1.3 with LRmate
 
 ![gallery of_environments](docs/images/gallery.png)
 
@@ -6,7 +6,7 @@
 
 -------
 ## Latest Updates
-[01/17/2023] **v1.3 MSC Version**: Add FANUC LRmate support for MSC Lab
+[01/17/2023] **MSC Version**: Add FANUC LRmate support for MSC Lab
 
 [10/19/2021] **v1.3**: Ray tracing and physically based rendering tools :sparkles: and access to additional vision modalities 🎥
 
