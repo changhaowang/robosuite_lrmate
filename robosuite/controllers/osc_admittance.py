@@ -299,7 +299,8 @@ class OperationalSpaceAdmittanceController(Controller):
         return position_error, vel_pos_error, ori_error, vel_ori_error
 
 
-    def run_controller(self):
+
+    def run_tracking_controller(self):
         """
         Calculates the torques required to reach the desired setpoint.
 
@@ -338,43 +339,17 @@ class OperationalSpaceAdmittanceController(Controller):
         # Compute desired force and torque based on errors
         position_error = desired_pos - self.ee_pos
         vel_pos_error = -self.ee_pos_vel
-        vel_ori_error = -self.ee_ori_vel
-
-        # Admittance control law here:
-        # e = x_desired - x_reference
-        # m_admittance \ddot(e) + kd_admittance \dot(e) + kp_admittance e = f_ext
-        # \ddot(e) = m_admittance^-1 (f_ext - kd_admittance \dot(e) - kp_admittance e)
-        # e_admittance = 
-        f_ext = self.ee_force
-        tau_ext = self.ee_torque
-        M_a =
-
-        I_a =
-        kp_a =
-        kd_a =
-        feedback_force = np.multiply(np.array(position_error), np.array(kp_a[0:3])) + np.multiply(
-            vel_pos_error, kd_a[0:3]
-        )
-        e_a_dd_p = np.divide(F_ext - feedback_force, M_a)
-        feedback_torque = np.multiply(np.array(ori_error), np.array(kp_a[3:6])) + np.multiply(
-            vel_ori_error, kd_a[3:6]
-        )
-        e_a_dd_o = np.divide(T_ext - feedback_torque, I_a)
-        dt = 0.002
-        e_a_interpolate_p = 0.5 * e_a_dd_p * dt * dt
-        e_a_d_interpolate_p = e_a_dd_p * dt
-        e_a_interpolate_o = 0.5 * e_a_dd_o * dt * dt
-        e_a_d_interpolate_o = e_a_dd_o * dt
-
-
 
         # F_r = kp * pos_err + kd * vel_err
-        desired_force = np.multiply(np.array(position_error)+e_a_interpolate_p, np.array(self.kp[0:3])) + np.multiply(
-            vel_pos_error+e_a_d_interpolate_p, self.kd[0:3]
+        desired_force = np.multiply(np.array(position_error), np.array(self.kp[0:3])) + np.multiply(
+            vel_pos_error, self.kd[0:3]
         )
+
+        vel_ori_error = -self.ee_ori_vel
+
         # Tau_r = kp * ori_err + kd * vel_err
-        desired_torque = np.multiply(np.array(ori_error)+e_a_interpolate_o, np.array(self.kp[3:6])) + np.multiply(
-            vel_ori_error+e_a_d_interpolate_o, self.kd[3:6]
+        desired_torque = np.multiply(np.array(ori_error), np.array(self.kp[3:6])) + np.multiply(
+            vel_ori_error, self.kd[3:6]
         )
 
         # Compute nullspace matrix (I - Jbar * J) and lambda matrices ((J * M^-1 * J^T)^-1)
@@ -404,6 +379,72 @@ class OperationalSpaceAdmittanceController(Controller):
         # Always run superclass call for any cleanups at the end
         super().run_controller()
 
+        return self.torques
+
+
+    def run_controller(self):
+        """
+        Calculates the desired position based on the admittance law.
+
+        Then send the desired position to the tracking controller to achieve admittance
+
+        Returns:
+             np.array: Command torques
+        """
+        # Update state
+        self.update()
+
+        reference_pos = None
+        # Only linear interpolator is currently supported
+        if self.interpolator_pos is not None:
+            # Linear case
+            if self.interpolator_pos.order == 1:
+                reference_pos = self.interpolator_pos.get_interpolated_goal()
+            else:
+                # Nonlinear case not currently supported
+                pass
+        else:
+            reference_pos = np.array(self.goal_pos)
+
+        if self.interpolator_ori is not None:
+            # relative orientation based on difference between current ori and ref
+            self.relative_ori = orientation_error(self.ee_ori_mat, self.ori_ref)
+
+            ori_error = self.interpolator_ori.get_interpolated_goal()
+        else:
+            reference_ori = np.array(self.goal_ori)
+            ori_error = orientation_error(reference_ori, self.ee_ori_mat)
+
+        # Compute desired force and torque based on errors
+        position_error = reference_pos - self.ee_pos
+        vel_pos_error = -self.ee_pos_vel
+        vel_ori_error = -self.ee_ori_vel
+
+        # Admittance control law here:
+        # e = x_desired - x_reference
+        # m_admittance \ddot(e) + kd_admittance \dot(e) + kp_admittance e = f_ext
+        # \ddot(e) = m_admittance^-1 (f_ext - kd_admittance \dot(e) - kp_admittance e)
+        # e = 1/2 * \ddot(e) * dt^2 
+        # x_desired = x_reference + e
+        
+        f_ext = self.ee_force
+        tau_ext = self.ee_torque
+
+        feedback_force = np.multiply(np.array(position_error), np.array(kp_a[0:3])) + np.multiply(
+            vel_pos_error, kd_a[0:3]
+        )
+        e_a_dd_p = np.divide(F_ext - feedback_force, M_a)
+        feedback_torque = np.multiply(np.array(ori_error), np.array(kp_a[3:6])) + np.multiply(
+            vel_ori_error, kd_a[3:6]
+        )
+        e_a_dd_o = np.divide(T_ext - feedback_torque, I_a)
+        dt = 0.002
+        e_a_interpolate_p = 0.5 * e_a_dd_p * dt * dt
+        e_a_d_interpolate_p = e_a_dd_p * dt
+        e_a_interpolate_o = 0.5 * e_a_dd_o * dt * dt
+        e_a_d_interpolate_o = e_a_dd_o * dt
+
+        self.torques = self.run_tracking_controller()
         return self.torques
 
     def update_initial_joints(self, initial_joints):
