@@ -1,0 +1,74 @@
+<mujoco model="lrmate">
+    <actuator>
+        <motor ctrllimited="true" ctrlrange="-200.0 200.0" joint="joint1" name="act1"/>
+        <motor ctrllimited="true" ctrlrange="-200.0 200.0" joint="joint2" name="act2"/>
+        <motor ctrllimited="true" ctrlrange="-200.0 200.0" joint="joint3" name="act3"/>
+        <motor ctrllimited="true" ctrlrange="-200.0 200.0" joint="joint4" name="act4"/>
+        <motor ctrllimited="true" ctrlrange="-200.0 200.0" joint="joint5" name="act5"/>
+        <motor ctrllimited="true" ctrlrange="-200.0 200.0" joint="joint6" name="act6"/>
+    </actuator>
+
+    <asset>
+        <mesh file="meshes/Base.STL" name="base" scale="0.001 0.001 0.001"></mesh>
+        <mesh file="meshes/Link1.STL" name="link1" scale="0.001 0.001 0.001"></mesh>
+        <mesh file="meshes/Link2.STL" name="link2" scale="0.001 0.001 0.001"></mesh>
+        <mesh file="meshes/Link3.STL" name="link3" scale="0.001 0.001 0.001"></mesh>
+        <mesh file="meshes/Link4.STL" name="link4" scale="0.001 0.001 0.001"></mesh>
+        <mesh file="meshes/Link5.STL" name="link5" scale="0.001 0.001 0.001"></mesh>
+        <mesh file="meshes/Link6.STL" name="link6" scale="0.001 0.001 0.001"></mesh>
+    </asset>
+
+    <worldbody>
+        <body name="base" pos="0 0 0">
+            <!-- robot view -->
+            <camera mode="fixed" name="robotview" pos="0.0 0 0.4" quat="0.653 0.271 0.271 0.653"/>
+            <inertial diaginertia="0 0 0" mass="0" pos="0 0 0"/>
+            <!-- mount attached here -->
+            <geom type="mesh" mesh="base" contype="0" conaffinity="0" group="1" name="base_visual" pos="0 0 0.33" rgba="0.5 0.5 0.5 1"></geom>
+            <geom type="mesh" mesh="base" name="base" pos="0 0 0.33" rgba="0.5 0.5 0.5 1"></geom>
+	        <body name="link1">
+	            <inertial diaginertia="0.0233 0.0194 0.0139" mass="2.3984" pos="0.0186 0.0034 -0.0771" quat="0.7071 -0.7071 0 0"></inertial>
+		        <joint axis="0 0 1" name="joint1" limited="true" range="-3.1416 3.1416" damping="0.1"/>
+                <geom type="mesh" mesh="link1" contype="0" conaffinity="0" group="1" name="link1_visual" pos="0.05 0.0 0.33" quat="0.7071 -0.7071 0 0" rgba="1 1 0 1"></geom>
+		        <geom type="mesh" mesh="link1" name="link1_collision" pos="0.05 0.0 0.33" quat="0.7071 -0.7071 0 0" rgba="1 1 0 1"></geom> 
+                <body name="link2">
+	                <inertial diaginertia="0.0329 0.2070 0.1884" mass="7.8019" pos="-0.0071 -0.1326 0.0248" quat="0 0.7071 -0.7071 0"></inertial>
+		            <joint axis="0 1 0" pos="0.05 0.0 0.33" name="joint2" limited="true" range="-2.129 2.129" damping="0.1"/>
+                    <geom type="mesh" mesh="link2" contype="0" conaffinity="0" group="1" name="link2_visual" pos="0.05 0.0 0.77" euler="1.57 0 1.57" rgba="1 1 0 1"></geom>
+                    <geom type="mesh" mesh="link2" name="link2_collision" pos="0.05 0.0 0.77" euler="1.57 0 1.57" rgba="1 1 0 1"></geom>
+                    <body name="link3">
+		                <inertial diaginertia="0.0081 0.0069 0.0080" mass="2.9847" pos="0.0058 -0.0059 -0.0207" quat="0 0.7071 -0.7071 0"></inertial>
+                        <joint axis="0 -1 0" pos="0.05 0.0 0.77" name="joint3" limited="true" range="-3.1416 3.1416" damping="0.1"/>
+                        <geom type="mesh" mesh="link3" contype="0" conaffinity="0" group="1" name="link3_visual" pos="0.05 0.0 0.805" euler="1.57 -1.57 1.57" rgba="1 1 0 1"></geom>
+                        <geom type="mesh" mesh="link3" name="link3_collision" pos="0.05 0.0 0.805" euler="1.57 -1.57 1.57" rgba="1 1 0 1"></geom>
+                        <body name="link4">
+                            <inertial diaginertia="0.0529 0.0057 0.0532" mass="4.1442" pos="-0.0002 0.0028 -0.2061" quat="0.7071 0.7071 0 0"></inertial>
+                            <joint axis="-1 0 0" pos="0.47 0.0 0.805" name="joint4" limited="true" range="-3.1416 3.1416" damping="0.1"/>
+                            <geom type="mesh" mesh="link4" contype="0" conaffinity="0" group="1" name="link4_visual" pos="0.47 0.0 0.805" euler="1.57 0 1.57" rgba="1 1 0 1"></geom>
+                            <geom type="mesh" mesh="link4" name="link4_collision" pos="0.47 0.0 0.805" euler="1.57 0 1.57" rgba="1 1 0 1"></geom>
+                            <body name="link5">
+                                <inertial diaginertia="0.0025 0.0024 0.0012" mass="1.7004" pos="0.0000 -0.0274 -0.0044" quat="0.7071 -0.7071 0 0"></inertial>
+                                <joint axis="0 -1 0" pos="0.47 0.0 0.805" name="joint5" limited="true" range="-2.182 2.182" damping="0.1"/>
+                                <geom type="mesh" mesh="link5" contype="0" conaffinity="0" group="1" name="link5_visual" pos="0.47 0.0 0.805" euler="1.57 -1.57 1.57" rgba="1 1 0 1"></geom>
+                                <geom type="mesh" mesh="link5" name="link5_collision" pos="0.47 0.0 0.805" euler="1.57 -1.57 1.57" rgba="1 1 0 1"></geom>
+                                <body name="link6">
+                                    <inertial diaginertia="0.00003 0.00003 0.00005" mass="1.1700" pos="0.0 0.0 -0.08" quat="0 1 0 0"></inertial>
+                                    <joint axis="1 0 0" pos="0.55 0.0 0.805" name="joint6" limited="true" range="-3.1416 3.1416" damping="0.1"/>
+                                    <geom type="mesh" mesh="link6" contype="0" conaffinity="0" group="1" name="link6_visual" pos="0.55 0.0 0.805" euler="1.57 1.57 1.57" rgba="0 0 0 1"></geom>
+                                    <geom type="mesh" mesh="link6" name="link6_collision" pos="0.55 0.0 0.805" euler="1.57 1.57 1.57" rgba="0 0 0 1"></geom>
+                                    <body name="right_hand" pos="0.55 0.0 0.805" euler="1.57 1.57 1.57">
+                                            <!-- This camera points out from the eef. -->
+                                            <camera mode="fixed" name="eye_in_hand" pos="0.05 0 0" quat="0 0.707108 0.707108 0" fovy="75"/>
+                                            <!-- To add gripper -->
+                                    </body>
+				                </body>
+			                </body>
+			            </body>
+		            </body>
+                </body>
+            </body>
+        </body>
+
+    </worldbody>
+    
+</mujoco>
