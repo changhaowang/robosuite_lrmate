@@ -339,11 +339,14 @@ class OperationalSpaceAdmittanceController(Controller):
         position_error = desired_pos - self.ee_pos
         vel_pos_error = -self.ee_pos_vel
         vel_ori_error = -self.ee_ori_vel
-        ## Admittance control law here:
-        ## M edd + kd ed + kp e = F_ext
-        ## edd = M^-1(F_ext - kd ed - kp e)
-        F_ext = # some magic function here Force+torque
-        T_ext =
+
+        # Admittance control law here:
+        # e = x_desired - x_reference
+        # m_admittance \ddot(e) + kd_admittance \dot(e) + kp_admittance e = f_ext
+        # \ddot(e) = m_admittance^-1 (f_ext - kd_admittance \dot(e) - kp_admittance e)
+        # e_admittance = 
+        f_ext = self.ee_force
+        tau_ext = self.ee_torque
         M_a =
 
         I_a =
