@@ -6,6 +6,7 @@
 
 -------
 ## Latest Updates
+[01/17/2023] **v1.3**: Add FANUC LRmate support for MSC Lab
 [10/19/2021] **v1.3**: Ray tracing and physically based rendering tools :sparkles: and access to additional vision modalities 🎥
 
 [02/17/2021] **v1.2**: Added observable sensor models :eyes: and dynamics randomization :game_die:
