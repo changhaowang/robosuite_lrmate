@@ -100,7 +100,8 @@ if __name__ == "__main__":
         "IK_POSE":          [6, 6, 0.01],
         "JOINT_POSITION":   [joint_dim, joint_dim, 0.2],
         "JOINT_VELOCITY":   [joint_dim, joint_dim, -0.1],
-        "JOINT_TORQUE":     [joint_dim, joint_dim, 0.25]
+        "JOINT_TORQUE":     [joint_dim, joint_dim, 0.25],
+        "OSC_ADM":          [6, 6, 0.01],
     }
 
     # Define variables for each controller test

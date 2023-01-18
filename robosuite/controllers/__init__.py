@@ -12,8 +12,8 @@ CONTROLLER_INFO = {
     "JOINT_POSITION":  "Joint Position",
     "OSC_POSITION": "Operational Space Control (Position Only)",
     "OSC_POSE":     "Operational Space Control (Position + Orientation)",
+    "OSC_ADM":       "Operational Space Admittance Control (Position + Orientation)",
     "IK_POSE":      "Inverse Kinematics Control (Position + Orientation) (Note: must have PyBullet installed)",
-    "IK_ADM":       "Operational Space Admittance Control (Position + Orientation)",
 }
 
 ALL_CONTROLLERS = CONTROLLER_INFO.keys()
