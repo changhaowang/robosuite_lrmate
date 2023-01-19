@@ -130,10 +130,10 @@ class OperationalSpaceAdmittanceController(Controller):
         control_ori=True,
         control_delta=True,
         uncouple_pos_ori=True,
-        m_admittance=[1, 1, 1],
-        I_admittance=[1, 1, 1],
-        kd_admittance=[1, 1, 1],
-        kp_admittance=[1, 1, 1],
+        m_admittance=[0.01, 0.01, 0.01],
+        I_admittance=[0.1, 0.1, 0.1],
+        kd_admittance=[1000, 1000, 1000, 1000, 1000, 1000],
+        kp_admittance=[1000, 1000, 1000, 1000, 1000, 1000],
         **kwargs,  # does nothing; used so no error raised when dict is passed with extra terms used previously
     ):
 
@@ -176,6 +176,10 @@ class OperationalSpaceAdmittanceController(Controller):
         self.I_admittance = I_admittance
         self.kp_admittance = kp_admittance
         self.kd_admittance = kd_admittance
+
+        # Calibrate force sensor
+        import copy
+        self.init_force_sensor = copy.deepcopy(self.ee_force)
 
         # Verify the proposed impedance mode is supported
         assert impedance_mode in IMPEDANCE_MODES, (
@@ -298,8 +302,6 @@ class OperationalSpaceAdmittanceController(Controller):
         vel_ori_error = -self.ee_ori_vel
         return position_error, vel_pos_error, ori_error, vel_ori_error
 
-
-
     def run_tracking_controller(self, position_error, ori_error):
         """
         Calculates the torques required to reach the desired setpoint.
@@ -392,21 +394,26 @@ class OperationalSpaceAdmittanceController(Controller):
         else:
             reference_ori = np.array(self.goal_ori)
             ori_error = orientation_error(reference_ori, self.ee_ori_mat)
-
-        # Compute position and orientation error
-        position_error = reference_pos - self.ee_pos
         
         # Admittance control law here:
-        # e = x_desired - x_reference
-        # m_admittance \ddot(e) + kd_admittance \dot(e) + kp_admittance e = f_ext
-        # \ddot(e) = m_admittance^-1 (f_ext - kd_admittance \dot(e) - kp_admittance e)
-        # e = 1/2 * \ddot(e) * dt^2 
-        # x_desired = x_reference + e
-        
-        position_error += np.divide(self.ee_force, self.kp_admittance[:3])
-        ori_error += np.divide(self.ee_torque, self.kp_admittance[3:])
+        # m_admittance (\ddot(x_d) - \ddot(x_0)) + kd_admittance (\dot(x_d) - \dot(x_0)) + kp_admittance (x_d - x_0) = f_ext
+        # x_d is the output to the tracking controller, and x_0 is the reference position
+        # Assume perfect position tracking, therefore, we have:
+        # \dot(x_d) = \dot(x_robot), x_d = x_robot, \ddot(x_0) = \dot(x_0) = 0
+        # Finally, we can obtain \ddot(x_d) as follows:
+        # \ddot(x_d) = m_admittance^(-1) (f_ext - kd_admittance (\dot(x_robot) - kp_admittance (x_robot - x_0)))
+        # x_d = x_robot + \dot(x_robot) * dt + 1/2 \dot(x_d) dt^2      
 
-        self.torques = self.run_tracking_controller(position_error, ori_error)
+        force_temp = (self.ee_force-self.init_force_sensor) - np.multiply(self.kd_admittance[:3], self.ee_pos_vel) - np.multiply(self.kp_admittance[:3], self.ee_pos - reference_pos)
+        xd_pos_acc = np.divide(force_temp, self.m_admittance)
+
+        torque_temp = self.ee_torque - np.multiply(self.kd_admittance[3:], self.ee_ori_vel) - np.multiply(self.kp_admittance[3:], ori_error)
+        xd_ori_acc = np.divide(torque_temp, self.I_admittance)
+        
+        xd_pos_err = self.ee_pos_vel * self.model_timestep + 1/2 * xd_pos_acc * self.model_timestep * self.model_timestep
+        xd_ori_err = self.ee_ori_vel * self.model_timestep + 1/2 *xd_ori_acc * self.model_timestep * self.model_timestep 
+
+        self.torques = self.run_tracking_controller(xd_pos_err, xd_ori_err)
         return self.torques
 
     def update_initial_joints(self, initial_joints):

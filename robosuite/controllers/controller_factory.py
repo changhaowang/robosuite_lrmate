@@ -2,6 +2,7 @@
 Set of functions that streamline controller initialization process
 """
 from .osc import OperationalSpaceController
+from .osc_admittance import OperationalSpaceAdmittanceController
 from .joint_vel import JointVelocityController
 from .joint_pos import JointPositionController
 from .joint_tor import JointTorqueController
@@ -136,7 +137,7 @@ def controller_factory(name, params):
             ori_interpolator = deepcopy(interpolator)
             ori_interpolator.set_states(ori="euler")
         params["control_ori"] = True
-        return OperationalSpaceController(interpolator_pos=interpolator,
+        return OperationalSpaceAdmittanceController(interpolator_pos=interpolator,
                                           interpolator_ori=ori_interpolator, **params)
 
     if name == "IK_POSE":

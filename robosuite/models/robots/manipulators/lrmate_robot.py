@@ -20,14 +20,14 @@ class LRmate(ManipulatorModel):
 
     @property
     def default_mount(self):
-        return "RethinkMount" # "NUllMount"
+        return "RethinkMount" # None
 
     @property
     def default_gripper(self):
-        return "PandaGripper" # NullGripper
+        return "PandaGripper" # None
     @property
     def default_controller_config(self):
-        return "default_panda"
+        return "default_lrmate"
 
     @property
     def init_qpos(self):

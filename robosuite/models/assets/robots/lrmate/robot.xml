@@ -1,4 +1,5 @@
 <mujoco model="lrmate">
+    <!-- <compiler angle="radian"/> -->
     <actuator>
         <motor ctrllimited="true" ctrlrange="-200.0 200.0" joint="joint1" name="act1"/>
         <motor ctrllimited="true" ctrlrange="-200.0 200.0" joint="joint2" name="act2"/>
@@ -56,6 +57,7 @@
                                     <joint axis="1 0 0" pos="0.55 0.0 0.805" name="joint6" limited="true" range="-3.1416 3.1416" damping="0.1"/>
                                     <geom type="mesh" mesh="link6" contype="0" conaffinity="0" group="1" name="link6_visual" pos="0.55 0.0 0.805" euler="1.57 1.57 1.57" rgba="0 0 0 1"></geom>
                                     <geom type="mesh" mesh="link6" name="link6_collision" pos="0.55 0.0 0.805" euler="1.57 1.57 1.57" rgba="0 0 0 1"></geom>
+                                    <!-- <site name="sb" pos="0.55 0.0 0.805" euler="1.57 1.57 1.57" size="0.01 0.01 0.01" rgba="1 0 0 1" type="sphere" group="1"/> -->
                                     <body name="right_hand" pos="0.55 0.0 0.805" euler="1.57 1.57 1.57">
                                             <!-- This camera points out from the eef. -->
                                             <camera mode="fixed" name="eye_in_hand" pos="0.05 0 0" quat="0 0.707108 0.707108 0" fovy="75"/>
