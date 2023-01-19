@@ -130,10 +130,10 @@ class OperationalSpaceAdmittanceController(Controller):
         control_ori=True,
         control_delta=True,
         uncouple_pos_ori=True,
-        m_admittance=[0.01, 0.01, 0.01],
-        I_admittance=[0.1, 0.1, 0.1],
-        kd_admittance=[1000, 1000, 1000, 1000, 1000, 1000],
-        kp_admittance=[1000, 1000, 1000, 1000, 1000, 1000],
+        m_admittance=[0.05, 0.05, 0.05],
+        I_admittance=[0.05, 0.05, 0.05],
+        kd_admittance=[100, 100, 100, 100, 100, 100],
+        kp_admittance=[20000, 20000, 20000, 100, 100, 100],
         **kwargs,  # does nothing; used so no error raised when dict is passed with extra terms used previously
     ):
 

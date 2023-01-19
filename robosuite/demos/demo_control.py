@@ -96,7 +96,7 @@ if __name__ == "__main__":
     # Define the pre-defined controller actions to use (action_dim, num_test_steps, test_value)
     controller_settings = {
         "OSC_POSE":         [6, 6, 0.1],
-        "OSC_ADM":          [6, 6, 1],
+        "OSC_ADM":          [6, 6, 0.1],
         "OSC_POSITION":     [3, 3, 0.1],
         "IK_POSE":          [6, 6, 0.01],
         "JOINT_POSITION":   [joint_dim, joint_dim, 0.2],
