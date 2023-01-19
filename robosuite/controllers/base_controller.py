@@ -1,4 +1,5 @@
 import abc
+import copy
 from collections.abc import Iterable
 import numpy as np
 import mujoco_py
@@ -67,6 +68,8 @@ class Controller(object, metaclass=abc.ABCMeta):
         self.ee_ori_vel = None
         self.joint_pos = None
         self.joint_vel = None
+        self.ee_force = None
+        self.ee_torque = None
 
         # dynamics and kinematics
         self.J_pos = None
@@ -91,6 +94,8 @@ class Controller(object, metaclass=abc.ABCMeta):
         self.initial_joint = self.joint_pos
         self.initial_ee_pos = self.ee_pos
         self.initial_ee_ori_mat = self.ee_ori_mat
+        self.initial_ee_force = copy.deepcopy(self.ee_force) # for calibrate the ft sensor and cancel the gravity
+        self.initial_ee_torque = copy.deepcopy(self.ee_torque) 
 
     @abc.abstractmethod
     def run_controller(self):
@@ -175,6 +180,12 @@ class Controller(object, metaclass=abc.ABCMeta):
         sensor_idx = np.sum(self.sim.model.sensor_dim[: self.sim.model.sensor_name2id(sensor_name)])
         sensor_dim = self.sim.model.sensor_dim[self.sim.model.sensor_name2id(sensor_name)]
         return np.array(self.sim.data.sensordata[sensor_idx : sensor_idx + sensor_dim])
+
+    def calibrate_force_sensor_measurement(self, ee_force):
+        return ee_force - self.initial_ee_force
+
+    def calibrate_torque_sensor_measurement(self, ee_torque):
+        return ee_torque - self.initial_ee_torque
 
     def update_base_pose(self, base_pos, base_ori):
         """

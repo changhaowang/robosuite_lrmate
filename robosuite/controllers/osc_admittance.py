@@ -177,10 +177,6 @@ class OperationalSpaceAdmittanceController(Controller):
         self.kp_admittance = kp_admittance
         self.kd_admittance = kd_admittance
 
-        # Calibrate force sensor
-        import copy
-        self.init_force_sensor = copy.deepcopy(self.ee_force)
-
         # Verify the proposed impedance mode is supported
         assert impedance_mode in IMPEDANCE_MODES, (
             "Error: Tried to instantiate OSC controller for unsupported "
@@ -404,10 +400,10 @@ class OperationalSpaceAdmittanceController(Controller):
         # \ddot(x_d) = m_admittance^(-1) (f_ext - kd_admittance (\dot(x_robot) - kp_admittance (x_robot - x_0)))
         # x_d = x_robot + \dot(x_robot) * dt + 1/2 \dot(x_d) dt^2      
 
-        force_temp = (self.ee_force-self.init_force_sensor) - np.multiply(self.kd_admittance[:3], self.ee_pos_vel) - np.multiply(self.kp_admittance[:3], self.ee_pos - reference_pos)
+        force_temp = self.calibrate_force_sensor_measurement(self.ee_force) - np.multiply(self.kd_admittance[:3], self.ee_pos_vel) - np.multiply(self.kp_admittance[:3], self.ee_pos - reference_pos)
         xd_pos_acc = np.divide(force_temp, self.m_admittance)
 
-        torque_temp = self.ee_torque - np.multiply(self.kd_admittance[3:], self.ee_ori_vel) - np.multiply(self.kp_admittance[3:], ori_error)
+        torque_temp = self.calibrate_torque_sensor_measurement(self.ee_torque) - np.multiply(self.kd_admittance[3:], self.ee_ori_vel) - np.multiply(self.kp_admittance[3:], ori_error)
         xd_ori_acc = np.divide(torque_temp, self.I_admittance)
         
         xd_pos_err = self.ee_pos_vel * self.model_timestep + 1/2 * xd_pos_acc * self.model_timestep * self.model_timestep
