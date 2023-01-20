@@ -35,13 +35,17 @@ if __name__ == "__main__":
 
     print('Begin to move down.')
 
-    while abs(env.robots[0].ee_force[-1]) <= 20:
+    while abs(env.robots[0].controllers.ee_force[-1]) <= 20:
         # Push downwards
         action = 10 * np.array([0, 0, -0.1, 0, 0, 0])
         env.step(action)
         if not render_options["headless"]:
             env.render()
-        print('End Effector Force: ', env.robots[0].ee_force[-1])
+        # print('End Effector Force: ', env.robots[0].ee_force[-1])
+        qpos = env.robots[0]._joint_positions
+        qvel = env.robots[0]._joint_velocities
+        print("Robot Joint Position: ", qpos)
+        print("Robot Joint Velocity: ", qvel)
 
     input('Begin to clean the table')
     
