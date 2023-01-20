@@ -35,7 +35,7 @@ if __name__ == "__main__":
 
     print('Begin to move down.')
 
-    while abs(env.robots[0].controllers.ee_force[-1]) <= 20:
+    while abs(env.robots[0].controller.ee_force[-1]) <= 20:
         # Push downwards
         action = 10 * np.array([0, 0, -0.1, 0, 0, 0])
         env.step(action)
