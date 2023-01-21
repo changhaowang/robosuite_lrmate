@@ -400,16 +400,23 @@ class OperationalSpaceAdmittanceController(Controller):
         # \ddot(x_d) = m_admittance^(-1) (f_ext - kd_admittance (\dot(x_robot) - kp_admittance (x_robot - x_0)))
         # x_d = x_robot + \dot(x_robot) * dt + 1/2 \dot(x_d) dt^2      
 
-        force_temp = self.calibrate_force_sensor_measurement(self.ee_force) - np.multiply(self.kd_admittance[:3], self.ee_pos_vel) - np.multiply(self.kp_admittance[:3], self.ee_pos - reference_pos)
-        xd_pos_acc = np.divide(force_temp, self.m_admittance)
+        # force_temp = self.calibrate_force_sensor_measurement(self.ee_force) - np.multiply(self.kd_admittance[:3], self.ee_pos_vel) - np.multiply(self.kp_admittance[:3], self.ee_pos - reference_pos)
+        # xd_pos_acc = np.divide(force_temp, self.m_admittance)
 
-        torque_temp = self.calibrate_torque_sensor_measurement(self.ee_torque) - np.multiply(self.kd_admittance[3:], self.ee_ori_vel) - np.multiply(self.kp_admittance[3:], ori_error)
-        xd_ori_acc = np.divide(torque_temp, self.I_admittance)
+        # torque_temp = self.calibrate_torque_sensor_measurement(self.ee_torque) - np.multiply(self.kd_admittance[3:], self.ee_ori_vel) - np.multiply(self.kp_admittance[3:], ori_error)
+        # xd_ori_acc = np.divide(torque_temp, self.I_admittance)
         
-        xd_pos_err = self.ee_pos_vel * self.model_timestep + 1/2 * xd_pos_acc * self.model_timestep * self.model_timestep
-        xd_ori_err = self.ee_ori_vel * self.model_timestep + 1/2 *xd_ori_acc * self.model_timestep * self.model_timestep 
+        # xd_pos_err = self.ee_pos_vel * self.model_timestep + 1/2 * xd_pos_acc * self.model_timestep * self.model_timestep
+        # xd_ori_err = self.ee_ori_vel * self.model_timestep + 1/2 *xd_ori_acc * self.model_timestep * self.model_timestep 
 
-        self.torques = self.run_tracking_controller(xd_pos_err, xd_ori_err)
+        # Only stiffness term
+        pos_err = np.divide(self.calibrate_force_sensor_measurement(self.ee_force), self.kp_admittance[:3]) + reference_pos - self.ee_pos
+        self.pos_err = pos_err
+        # Output desired admittance position for debugging
+        # self.ee_pos_desired_admittance = xd_pos_err + reference_pos
+        # self.reference_pos = reference_pos
+
+        self.torques = self.run_tracking_controller(pos_err, ori_error)
         return self.torques
 
     def update_initial_joints(self, initial_joints):
