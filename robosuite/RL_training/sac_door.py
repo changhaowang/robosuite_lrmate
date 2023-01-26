@@ -16,14 +16,9 @@ from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 
 
 def experiment(variant):
-    # expl_env = NormalizedBoxEnv(Walker2dEnv())
-    # eval_env = NormalizedBoxEnv(Walker2dEnv())
-    render_options = {}
     options = {}
-    
     options["env_name"] = "Door"
     options["robots"] = "LRmate"
-    
     controller_name = "OSC_POSE"
 
     # Load the desired controller
@@ -114,9 +109,6 @@ def experiment(variant):
     algorithm.to(ptu.device)
     algorithm.train()
 
-
-
-
 if __name__ == "__main__":
     # noinspection PyTypeChecker
     variant = dict(
@@ -143,6 +135,6 @@ if __name__ == "__main__":
             use_automatic_entropy_tuning=True,
         ),
     )
-    setup_logger('name-of-experiment', variant=variant)
+    setup_logger('Door', variant=variant)
     ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
     experiment(variant)
