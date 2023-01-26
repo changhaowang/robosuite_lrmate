@@ -9,7 +9,7 @@ if __name__ == "__main__":
 
     render_options["headless"] = False
     
-    options["env_name"] = "Wipe"
+    options["env_name"] = "Door"
     options["robots"] = "LRmate"
     
     controller_name = "OSC_POSE"
@@ -29,6 +29,7 @@ if __name__ == "__main__":
         ignore_done=True,
         use_camera_obs=False,
         control_freq=20,
+        reward_shaping=True,
     )
     env.reset()
 
@@ -45,7 +46,7 @@ if __name__ == "__main__":
         curr_ee_pos = env.robots[0].controller.ee_pos
         action[:3] = (desired_ee_pos - curr_ee_pos)
         
-        env.step(action)
+        observations, reward, done, info = env.step(action)
         if not render_options["headless"]:
             env.render()
         sensed_force = env.robots[0].controller.ee_force

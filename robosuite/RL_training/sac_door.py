@@ -32,6 +32,7 @@ def experiment(variant):
         ignore_done=True,
         use_camera_obs=False,
         control_freq=20,
+        reward_shaping=True,
     ))
 
     eval_env = GymWrapper(suite.make(
@@ -41,6 +42,7 @@ def experiment(variant):
         ignore_done=True,
         use_camera_obs=False,
         control_freq=20,
+        reward_shaping=True,
     ))
     obs_dim = expl_env.observation_space.low.size
     action_dim = eval_env.action_space.low.size
