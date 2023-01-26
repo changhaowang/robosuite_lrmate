@@ -12,7 +12,7 @@ if __name__ == "__main__":
     options["env_name"] = "Wipe"
     options["robots"] = "LRmate"
     
-    controller_name = "OSC_ADM"
+    controller_name = "OSC_POSE"
 
     # Load the desired controller
     options["controller_configs"] = suite.load_controller_config(default_controller=controller_name)
