@@ -20,13 +20,14 @@ def simulate_policy(args):
     render_options = {}
     options = {}
     
-    options["env_name"] = "Wipe"
+    options["env_name"] = "Door"
     options["robots"] = "LRmate"
     
     controller_name = "OSC_POSE"
 
     # Load the desired controller
     options["controller_configs"] = suite.load_controller_config(default_controller=controller_name)
+    options["controller_configs"]["impedance_mode"] = 'variable_kp'
     env = GymWrapper(suite.make(
         **options,
         has_renderer=True,
@@ -55,7 +56,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('file', type=str,
                         help='path to the snapshot file')
-    parser.add_argument('--H', type=int, default=300,
+    parser.add_argument('--H', type=int, default=500,
                         help='Max length of rollout')
     parser.add_argument('--gpu', action='store_true')
     args = parser.parse_args()

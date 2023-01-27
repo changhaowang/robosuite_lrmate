@@ -18,7 +18,7 @@ from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 def experiment(variant):
     options = {}
     options["env_name"] = "Door"
-    options["robots"] = "LRmate"
+    options["robots"] = "Sawyer"
     controller_name = "OSC_POSE"
 
     # Load the desired controller
@@ -120,12 +120,12 @@ if __name__ == "__main__":
         replay_buffer_size=int(1E6),
         algorithm_kwargs=dict(
             num_epochs=3000,
-            num_eval_steps_per_epoch=100*10,
+            num_eval_steps_per_epoch=500*5,
             num_trains_per_train_loop=1000,
-            num_expl_steps_per_train_loop=100*20,
-            min_num_steps_before_training=0,
-            max_path_length=100,
-            batch_size=256,
+            num_expl_steps_per_train_loop=500*5,
+            min_num_steps_before_training=3300,
+            max_path_length=500,
+            batch_size=128,
         ),
         trainer_kwargs=dict(
             discount=0.99,
