@@ -14,17 +14,18 @@ from rlkit.torch.sac.sac import SACTrainer
 from rlkit.torch.networks import ConcatMlp
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 
+options = {}
+options["env_name"] = "Door"
+options["robots"] = "LRmate"
+controller_name = "OSC_POSE"
+
+# Load the desired controller
+options["controller_configs"] = suite.load_controller_config(default_controller=controller_name)
+options["controller_configs"]["impedance_mode"] = 'variable_kp'
+
 
 def experiment(variant):
-    options = {}
-    options["env_name"] = "Door"
-    options["robots"] = "LRmate"
-    controller_name = "OSC_POSE"
-
-    # Load the desired controller
-    options["controller_configs"] = suite.load_controller_config(default_controller=controller_name)
-    options["controller_configs"]["impedance_mode"] = 'variable_kp'
-
+    
     expl_env = GymWrapper(suite.make(
         **options,
         has_renderer=True,
@@ -137,6 +138,6 @@ if __name__ == "__main__":
             use_automatic_entropy_tuning=True,
         ),
     )
-    setup_logger('Door', variant=variant)
+    setup_logger(options["env_name"] + options["robots"] + controller_name + options["controller_configs"]["impedance_mode"], variant=variant)
     ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
     experiment(variant)

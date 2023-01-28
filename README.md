@@ -31,7 +31,10 @@
 5. Install torch and torch vision based on the cuda version
 ```pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu116```
 
-4. Demo: ```python robosuite/demos/demo_control.py```
+6. Install rlkit from source:
+  ```cd rlkit``` and ```pip install -e .```
+
+7. Demo: ```python robosuite/demos/demo_control.py```
 
 --------
 ## Troubleshooting
