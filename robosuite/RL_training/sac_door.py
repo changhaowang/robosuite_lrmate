@@ -18,7 +18,7 @@ from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 def experiment(variant):
     options = {}
     options["env_name"] = "Door"
-    options["robots"] = "Sawyer"
+    options["robots"] = "LRmate"
     controller_name = "OSC_POSE"
 
     # Load the desired controller
@@ -27,7 +27,7 @@ def experiment(variant):
 
     expl_env = GymWrapper(suite.make(
         **options,
-        has_renderer=False,
+        has_renderer=True,
         has_offscreen_renderer=False,
         ignore_done=True,
         use_camera_obs=False,
@@ -37,7 +37,7 @@ def experiment(variant):
 
     eval_env = GymWrapper(suite.make(
         **options,
-        has_renderer=False,
+        has_renderer=True,
         has_offscreen_renderer=False,
         ignore_done=True,
         use_camera_obs=False,
@@ -77,13 +77,13 @@ def experiment(variant):
     eval_path_collector = MdpPathCollector(
         eval_env,
         eval_policy,
-        # render=True,
+        render=True,
         save_env_in_snapshot=False, # no need to save env in the snapshot
     )
     expl_path_collector = MdpPathCollector(
         expl_env,
         policy,
-        # render=True,
+        render=True,
         save_env_in_snapshot=False,
     )
     replay_buffer = EnvReplayBuffer(

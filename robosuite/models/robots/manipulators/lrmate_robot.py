@@ -31,7 +31,8 @@ class LRmate(ManipulatorModel):
 
     @property
     def init_qpos(self):
-        return np.array([0.0, 0.0, 0.0, 0.0, -np.pi/2, 0.0])
+        # return np.array([0.0, 0.0, 0.0, 0.0, -np.pi/2, 0.0])
+        return np.array([-0.09303073354183951, 0.7610021225351699, -0.6254490139440789, 1.6162066969530529, -1.6089099031003165, 1.4742470650341504]) # Door environment
 
     @property
     def base_xpos_offset(self):

@@ -34,18 +34,22 @@ if __name__ == "__main__":
     env.reset()
 
     if not render_options["headless"]:
-        env.viewer.set_camera(camera_id=0)
+        env.viewer.set_camera(camera_id=3)
 
     desired_ee_pos = np.array([0.065, -0.012, 0.85])
     desired_ee_ori_mat = env.robots[0].controller.ee_ori_mat
     desired_ee_ori_euler = T.mat2euler(desired_ee_ori_mat)#np.array([-np.pi, 0, np.pi/2])
 
     while True:
-        action = np.zeros((6,))
+        action = np.zeros((7,))
         # Push downwards
         curr_ee_pos = env.robots[0].controller.ee_pos
-        action[:3] = (desired_ee_pos - curr_ee_pos)
-        
+        # action[:3] = (desired_ee_pos - curr_ee_pos)
+        action[0] = -1
+        # Push left
+        # action[1] = -0.5
+        # action[0] = -0.5
+
         observations, reward, done, info = env.step(action)
         if not render_options["headless"]:
             env.render()
