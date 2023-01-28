@@ -19,10 +19,17 @@
 
 1. Download MuJoco 2.1.0 or 2.0.0
 
-2. Install mujoco_py from source (Notice robosuite v1.4 does not works with openai mujoco_py)
+2. Install mujoco_py from source (Notice robosuite v1.4 does not works with openai mujoco_py): 
+  ```cd mujoco_py``` and  ```pip install -e .```
 
-3. Install robosuite from source: 
-  ```pip install -r reqruiments.txt```
+3. Install robosuite from source (carefully check the mujoco_py version in setup.py): 
+  ```pip install -r requirments.txt```
+
+4. Install rlkit from source (support python 3.7) (carefully check the mujoco_py version in setup.py):
+  ```pip install -r requirments-rlkit.txt```
+
+5. Install torch and torch vision based on the cuda version
+```pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu116```
 
 4. Demo: ```python robosuite/demos/demo_control.py```
 
