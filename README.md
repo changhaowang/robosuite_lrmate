@@ -36,8 +36,6 @@
 --------
 ## Troubleshooting
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/fanuc/.mujoco/mujoco200/bin/
-# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/fanuc/.mujoco/mujoco210/bin
 export MUJOCO_PATH=/home/fanuc/.mujoco/mujoco200/
-# export MUJOCO_PATH=/home/fanuc/.mujoco/mujoco210/
 export MUJOCO_LICENSE_PATH=/home/fanuc/.mujoco/mujoco200/bin/mjkey.txt
 export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libGLEW.so
