@@ -23,12 +23,13 @@ controller_name = "OSC_POSE"
 options["controller_configs"] = suite.load_controller_config(default_controller=controller_name)
 options["controller_configs"]["impedance_mode"] = 'variable_kp'
 
+render_option = False
 
 def experiment(variant):
     
     expl_env = GymWrapper(suite.make(
         **options,
-        has_renderer=True,
+        has_renderer=render_option,
         has_offscreen_renderer=False,
         ignore_done=True,
         use_camera_obs=False,
@@ -38,7 +39,7 @@ def experiment(variant):
 
     eval_env = GymWrapper(suite.make(
         **options,
-        has_renderer=True,
+        has_renderer=render_option,
         has_offscreen_renderer=False,
         ignore_done=True,
         use_camera_obs=False,
@@ -78,13 +79,13 @@ def experiment(variant):
     eval_path_collector = MdpPathCollector(
         eval_env,
         eval_policy,
-        render=True,
+        render=render_option,
         save_env_in_snapshot=False, # no need to save env in the snapshot
     )
     expl_path_collector = MdpPathCollector(
         expl_env,
         policy,
-        render=True,
+        render=render_option,
         save_env_in_snapshot=False,
     )
     replay_buffer = EnvReplayBuffer(
