@@ -9,7 +9,7 @@ if __name__ == "__main__":
 
     render_options["headless"] = False
     
-    options["env_name"] = "Door"
+    options["env_name"] = "Wipe"
     options["robots"] = "LRmate"
     
     controller_name = "OSC_POSE"
@@ -41,11 +41,11 @@ if __name__ == "__main__":
     desired_ee_ori_euler = T.mat2euler(desired_ee_ori_mat)#np.array([-np.pi, 0, np.pi/2])
 
     while True:
-        action = np.zeros((7,))
+        action = np.zeros((6,))
         # Push downwards
         curr_ee_pos = env.robots[0].controller.ee_pos
         # action[:3] = (desired_ee_pos - curr_ee_pos)
-        action[0] = -1
+        action[2] = -1
         # Push left
         # action[1] = -0.5
         # action[0] = -0.5
@@ -56,11 +56,11 @@ if __name__ == "__main__":
         sensed_force = env.robots[0].controller.ee_force
         calibrated_force = env.robots[0].controller.calibrate_force_sensor_measurement(sensed_force)
         print('Sensed Calibrated Effector Force: ', calibrated_force[-1])
-        # qpos = env.robots[0]._joint_positions
+        qpos = env.robots[0]._joint_positions
         # qvel = env.robots[0]._joint_velocities
         # ee_pos = env.robots[0].controller.ee_pos
         # ee_vel = env.robots[0].controller.ee_pos_vel
-        # # print("Robot Joint Position: ", qpos)
+        print("Robot Joint Position: ", qpos)
         # # print("Robot Joint Velocity: ", qvel)
         # print("Robot End-Effector Position: ", ee_pos)
         # # print("Robot End-Effector Velocity: ", ee_vel)
