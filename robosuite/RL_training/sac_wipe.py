@@ -15,7 +15,7 @@ from rlkit.torch.networks import ConcatMlp
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 
 options = {}
-options["env_name"] = "Door"
+options["env_name"] = "Wipe"
 options["robots"] = "LRmate"
 controller_name = "OSC_POSE"
 
