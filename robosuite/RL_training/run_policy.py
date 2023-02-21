@@ -30,7 +30,7 @@ def simulate_policy(args):
     options["controller_configs"]["impedance_mode"] = 'variable_kp'
     env = GymWrapper(suite.make(
         **options,
-        has_renderer=True,
+        has_renderer=args.render,
         has_offscreen_renderer=False,
         ignore_done=True,
         use_camera_obs=False,
@@ -45,7 +45,7 @@ def simulate_policy(args):
             env,
             policy,
             max_path_length=args.H,
-            render=True,
+            render=args.render,
         )
         if hasattr(env, "log_diagnostics"):
             env.log_diagnostics([path])
@@ -54,11 +54,12 @@ def simulate_policy(args):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('file', type=str,
-                        help='path to the snapshot file')
+    parser.add_argument('--file', type=str,
+                        help='path to the snapshot file',
+                        default='data/DoorLRmateOSC-POSEvariable-kp/DoorLRmateOSC_POSEvariable_kp_2023_01_27_23_21_00_0000--s-0/params.pkl')
     parser.add_argument('--H', type=int, default=500,
                         help='Max length of rollout')
-    parser.add_argument('--gpu', action='store_true')
+    parser.add_argument('--gpu', action='store_true', default=True)
+    parser.add_argument('--render', action='store_true', default=False)
     args = parser.parse_args()
-
     simulate_policy(args)
