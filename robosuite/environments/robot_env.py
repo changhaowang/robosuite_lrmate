@@ -147,6 +147,7 @@ class RobotEnv(MujocoEnv):
         robot_configs=None,
         renderer="mujoco",
         renderer_config=None,
+        less_obs_config=False,
     ):
         # First, verify that correct number of robots are being inputted
         self.env_configuration = env_configuration
@@ -170,6 +171,7 @@ class RobotEnv(MujocoEnv):
 
         # Observations -- Ground truth = object_obs, Image data = camera_obs
         self.use_camera_obs = use_camera_obs
+        self.less_obs_config = less_obs_config
 
         # Camera / Rendering Settings
         self.has_offscreen_renderer = has_offscreen_renderer

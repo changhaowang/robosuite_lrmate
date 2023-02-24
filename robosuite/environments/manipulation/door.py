@@ -159,6 +159,7 @@ class Door(SingleArmEnv):
         camera_segmentations=None,      # {None, instance, class, element}
         renderer="mujoco",
         renderer_config=None,
+        less_obs_config=True, # For msc lab experience, change the observation to make it easier to implement on the real robot
     ):
         # settings for table top (hardcoded since it's not an essential part of the environment)
         self.table_full_size = (0.8, 0.3, 0.05)
@@ -174,6 +175,9 @@ class Door(SingleArmEnv):
 
         # object placement initializer
         self.placement_initializer = placement_initializer
+
+        # Config for less observations
+        self.less_obs_config = less_obs_config
 
         super().__init__(
             robots=robots,
@@ -200,6 +204,7 @@ class Door(SingleArmEnv):
             camera_segmentations=camera_segmentations,
             renderer=renderer,
             renderer_config=renderer_config,
+            less_obs_config=less_obs_config,
         )
 
     def reward(self, action=None):
@@ -365,7 +370,10 @@ class Door(SingleArmEnv):
             def hinge_qpos(obs_cache):
                 return np.array([self.sim.data.qpos[self.hinge_qpos_addr]])
 
-            sensors = [door_pos, handle_pos, door_to_eef_pos, handle_to_eef_pos, hinge_qpos]
+            if self.less_obs_config:
+                sensors = [door_pos, handle_pos] # for lab experiement, we only have door pos as the object observation
+            else:
+                sensors = [door_pos, handle_pos, door_to_eef_pos, handle_to_eef_pos, hinge_qpos]
             names = [s.__name__ for s in sensors]
 
             # Also append handle qpos if we're using a locked door version with rotatable handle
@@ -373,8 +381,9 @@ class Door(SingleArmEnv):
                 @sensor(modality=modality)
                 def handle_qpos(obs_cache):
                     return np.array([self.sim.data.qpos[self.handle_qpos_addr]])
-                sensors.append(handle_qpos)
-                names.append("handle_qpos")
+                if not self.less_obs_config:
+                    sensors.append(handle_qpos)
+                    names.append("handle_qpos")
 
             # Create observables
             for name, s in zip(names, sensors):
@@ -384,10 +393,10 @@ class Door(SingleArmEnv):
                     sampling_rate=self.control_freq,
                 )
         ## Check observation name and dimensions
-        obs_dim = 0
-        for key, value in observables.items():
-            obs_dim += value._data_shape[0]
-            print(value.name)
+        # obs_dim = 0
+        # for key, value in observables.items():
+        #     obs_dim += value._data_shape[0]
+        #     print(value.name)
         return observables
 
     def _reset_internal(self):

@@ -9,7 +9,7 @@ if __name__ == "__main__":
 
     render_options["headless"] = False
     
-    options["env_name"] = "Wipe"
+    options["env_name"] = "Door"
     options["robots"] = "LRmate"
     
     controller_name = "OSC_POSE"

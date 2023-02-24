@@ -20,7 +20,7 @@ def simulate_policy(args):
     render_options = {}
     options = {}
     
-    options["env_name"] = "Wipe"
+    options["env_name"] = "Door"
     options["robots"] = "LRmate"
     
     controller_name = "OSC_POSE"

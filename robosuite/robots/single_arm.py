@@ -314,9 +314,11 @@ class SingleArm(Manipulator):
         @sensor(modality=modality)
         def eef_quat(obs_cache):
             return T.convert_quat(self.sim.data.get_body_xquat(self.robot_model.eef_name), to="xyzw")
-
-        sensors = [eef_pos, eef_quat]
-        names = [f"{pf}eef_pos", f"{pf}eef_quat"]
+            
+        # sensors = [eef_pos, eef_quat]
+        # names = [f"{pf}eef_pos", f"{pf}eef_quat"]
+        sensors = []
+        names = []
 
         # add in gripper sensors if this robot has a gripper
         if self.has_gripper:
@@ -328,8 +330,18 @@ class SingleArm(Manipulator):
             def gripper_qvel(obs_cache):
                 return np.array([self.sim.data.qvel[x] for x in self._ref_gripper_joint_vel_indexes])
 
-            sensors += [gripper_qpos, gripper_qvel]
-            names += [f"{pf}gripper_qpos", f"{pf}gripper_qvel"]
+            @sensor(modality=modality)
+            def eef_force(obs_cache):
+                return self.get_sensor_measurement(self.gripper.important_sensors["force_ee"])
+
+            @sensor(modality=modality)
+            def eef_torque(obs_cache):
+                return self.get_sensor_measurement(self.gripper.important_sensors["torque_ee"])
+
+            # sensors += [gripper_qpos, gripper_qvel]
+            # sensors += [eef_force, eef_torque]
+            # names += [f"{pf}gripper_qpos", f"{pf}gripper_qvel"]
+            # names += [f"{pf}eef_force", f"{pf}eef_torque"]
 
         # Create observables for this robot
         for name, s in zip(names, sensors):

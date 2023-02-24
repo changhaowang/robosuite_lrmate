@@ -205,10 +205,15 @@ class Robot(object):
         def joint_vel(obs_cache):
             return np.array([self.sim.data.qvel[x] for x in self._ref_joint_vel_indexes])
 
-        sensors = [joint_pos, joint_pos_cos, joint_pos_sin, joint_vel]
-        names = ["joint_pos", "joint_pos_cos", "joint_pos_sin", "joint_vel"]
+        # sensors = [joint_pos, joint_pos_cos, joint_pos_sin, joint_vel]
+        # names = ["joint_pos", "joint_pos_cos", "joint_pos_sin", "joint_vel"]
+        sensors = [joint_pos]
+        names = ["joint_pos"]
         # We don't want to include the direct joint pos sensor outputs
-        actives = [True, True, True, True]
+        # actives = [True, True, True, True]
+        # actives = [True, False, False, False]
+        actives = [True]
+
 
         # Create observables for this robot
         observables = OrderedDict()
