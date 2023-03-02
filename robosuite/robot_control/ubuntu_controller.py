@@ -19,8 +19,8 @@ class robot_controller:
 
         # self.s_in = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         # self.s_in.bind((self.UDP_IP_IN, self.UDP_PORT_IN))
-        # Receive TCP position (3*), TCP Rotation Matrix (9*), TCP Velcoity (6*), Force Torque (6*)
-        self.unpacker = struct.Struct("12d 6d 6d")
+        # Receive TCP position (3*), TCP Rotation Matrix (9*), TCP Velcoity (6*), Force Torque (6*), Joint Pos
+        self.unpacker = struct.Struct("12d 6d 6d 6d")
 
         self.robot_pose, self.robot_vel, self.TCP_wrench = None, None, None
 
@@ -31,10 +31,11 @@ class robot_controller:
         self.s_in.bind((self.UDP_IP_IN, self.UDP_PORT_IN))
         data, _ = self.s_in.recvfrom(1024)
         unpacked_data = np.array(self.unpacker.unpack(data))
-        self.robot_pose, self.robot_vel, self.TCP_wrench = (
+        self.robot_pose, self.robot_vel, self.TCP_wrench, self.joint_pos = (
             unpacked_data[0:12],
             unpacked_data[12:18],
-            unpacked_data[18:24]
+            unpacked_data[18:24],
+            unpacked_data[24:30],
         )
         self.s_in.close()
         

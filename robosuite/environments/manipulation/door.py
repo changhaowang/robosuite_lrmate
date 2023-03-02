@@ -393,10 +393,10 @@ class Door(SingleArmEnv):
                     sampling_rate=self.control_freq,
                 )
         ## Check observation name and dimensions
-        # obs_dim = 0
-        # for key, value in observables.items():
-        #     obs_dim += value._data_shape[0]
-        #     print(value.name)
+        obs_dim = 0
+        for key, value in observables.items():
+            obs_dim += value._data_shape[0]
+            print(value.name)
         return observables
 
     def _reset_internal(self):

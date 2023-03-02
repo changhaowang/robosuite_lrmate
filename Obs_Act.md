@@ -2,4 +2,4 @@
 
 ### Door Env
 #### Observations
-1. ```[eef_pose, handle_pos]```
+1. ```[robot0_joint_pos, door_pos, handle_pos]```
