@@ -47,7 +47,8 @@ if __name__ == "__main__":
         curr_ee_ori = env.robots[0].controller.ee_ori_mat
         # action[:3] = (desired_ee_pos - curr_ee_pos)
         # Push left
-        action[2] = 1
+        action[1] = 0.1
+        action[2] = 0.01
         # action[0] = -0.5
 
         observations, reward, done, info = env.step(action)

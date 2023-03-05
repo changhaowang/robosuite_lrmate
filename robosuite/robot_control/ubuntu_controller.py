@@ -42,12 +42,12 @@ class robot_controller:
 
     def send(self, udp_cmd):
         '''
-        UDP command 1~6 TCP desired Position Rotation
-        UDP desired vel 7~12 
-        UDP Kp 13~18
-        UDP Kd 19~24
-        UDP Mass 25~27
-        UDP Interial 28~30
+        UDP command 1~3 TCP desired position (meters)
+        UDP command 4~6 TCP desired rotation in euler ('ZYX', radians)
+        UDP Kp 7~12 TCP desired stiffness Kp
+        UDP Kd 13~18 TCP desired damping Kd
+        UDP Mass 19_21 TCP desired mass
+        UDP Interial 21~24 TCP desired inertia
         '''
         self.s_out = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         udp_cmd = udp_cmd.astype("d").tostring()

@@ -396,7 +396,7 @@ class Door(SingleArmEnv):
         obs_dim = 0
         for key, value in observables.items():
             obs_dim += value._data_shape[0]
-            print(value.name)
+            # print(value.name)
         return observables
 
     def _reset_internal(self):

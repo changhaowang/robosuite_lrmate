@@ -5,17 +5,18 @@ from rlkit.torch.pytorch_util import set_gpu_mode
 from scipy.spatial.transform import Rotation as R
 
 INIT_JNT_POSE =  np.array([-0.03477543, 0.89188467, -0.57513507, 0.08426756, -0.11839037, 0.08335862])
-INIT_EEF_POSE = np.array([0.47, 0, 0.1, 0, 0, 0])
+INIT_EEF_POSE = np.array([0.47, 0, 0.1, 5, 0, 0])
 
-DEFAULT_KP = np.array([25, 25, 90])
-DEFAULT_KD = np.array([17, 17, 90])
-
+DEFAULT_KP = np.array([25, 25, 90, 20, 20, 20])
+DEFAULT_KD = np.array([17, 17, 90, 20, 20, 20])
+DEFAULT_M = np.array([2, 2, 2])
+DEFAULT_INTERTIA = np.array([0.2, 0.2, 0.2])
 
 class RL_Agent(object):
     '''
     RL_Agent learned from the simulation
     '''
-    def __init__(self, env_name, controller_type, policy_folder, gpu=True, print_args=False) -> None:   
+    def __init__(self, env_name, controller_type, policy_folder, M=DEFAULT_M, Inertia=DEFAULT_INTERTIA, gpu=True, print_args=False) -> None:   
         '''
             Args: 
                 1. env_name: environment name
@@ -35,13 +36,14 @@ class RL_Agent(object):
         self.load_policy()
 
         # Impedance parameters
-        self.Mass = np.array([2,2,2])    # to determine
-        self.Inertia = 1*np.array([2, 2, 2])   # to determine
+        self.Mass = M
+        self.Inertia = Inertia
         self.ori_offset = (np.array([[0, 0, 1], [0, -1, 0], [1, 0, 0]])).T @ np.array([[0, 0, 1],[1, 0, 0], [0, 1, 0]])  # Convert the frame to gripper frame
         self.pos_offset = np.array([-0.574, 0 , 1.202])
+        self.kp_limit = np.array([0, 300])
 
         # Init Robot Position
-        # self.init_robot_pos()
+        self.init_robot_pos()
         if print_args:
             print('Environment Initialized.')
 
@@ -111,25 +113,27 @@ class RL_Agent(object):
 
     def get_total_observations(self):
         '''
-        Get the required observations (robot state + object state)
+        Get the required observations (door pos, handle pos, robot joint pos)
         '''
         robot_state = self.get_robot_state()
         object_state = self.get_object_state()
-        observations = np.hstack((robot_state, object_state))
+        observations = np.hstack((object_state, robot_state))
         return observations
     
     def operation_space_control(self, action):
         '''
         Operational space control for robot
         Args: 
-            action [13 * 1]: stiffness + (delta) tcp pos + (delta) tcp euler + gripper_command
+            action [13 * 1]: stiffness + (delta) tcp pos + (delta) tcp euler (in YZX order) + gripper_command
         '''
         # update robot state
         self.get_robot_state()
-        TCP_d_pose = action[6:12] + self.TCP_pose
-        TCP_d_pos = TCP_d_pose[0:3]
-        TCP_d_euler = TCP_d_pose[3:]
-        Kp = action[0:6]
+        delta_tcp_pos = action[6:9]
+        delta_tcp_euler = action[9:12]
+        TCP_d_pos = self.TCP_pose[0:3] + delta_tcp_pos
+        TCP_d_euler = self.TCP_pose[3:6] + delta_tcp_euler
+
+        Kp = np.clip(action[0:6], self.kp_limit[0], self.kp_limit[1])
         # use critical damping
         Kd = 2 * np.sqrt(Kp)
         self.send_commend(TCP_d_pos, TCP_d_euler, Kp, Kd)
@@ -139,15 +143,38 @@ class RL_Agent(object):
         Send command to the robot.
         Args:
             TCP_d_pos: 3*1 end-effector position
-            TCP_d_euler: 3*1 end-effector orientation
+            TCP_d_euler: 3*1 end-effector orientation ('ZYX' in radians)
             TCP_d_vel: 6*1 end-effector velocity
         '''
 
-        d_rotm = R.from_euler('xyz', TCP_d_euler).as_matrix()
-        TCP_d_euler = R.from_matrix(d_rotm).as_euler('xyz')
-        UDP_cmd = np.hstack([TCP_d_pos, TCP_d_euler, Kp[0:3], Kd[0:3], self.Mass[0:3]])
+        UDP_cmd = np.hstack([TCP_d_pos, TCP_d_euler, Kp, Kd, self.Mass, self.Inertia])
         print(UDP_cmd)
         self.controller.send(UDP_cmd)    
+
+    def action_transform(self, action_sim):
+        '''
+        Transform the action in simulation to the same frame in the real world
+        Args: 
+            action_sim [13 * 1]: stiffness + (delta) tcp pos + (delta) tcp euler (in YZX order) + gripper_command
+        Returns:
+            action_real [13 * 1]: stiffness + (delta) tcp pos + (delta) tcp euler (in ZYX order) + gripper_command
+        '''
+        kp_sim = action_sim[0:6]
+        delta_TCP_d_pos_sim = action_sim[6:9]
+        delta_TCP_d_euler_sim = action_sim[9:12]
+        gripper_action_sim = action_sim[12]
+
+        action_real = np.zeros_like(action_sim)
+        kp_real = kp_sim # may need to transform the orientation Kp
+        delta_TCP_d_pos_real = delta_TCP_d_pos_sim
+        delta_TCP_d_euler_real = (R.from_euler('YZX', delta_TCP_d_euler_sim, degrees=False)).as_euler('YZX', degress=False)
+        gripper_action_real = gripper_action_sim
+
+        action_real[0:6] = kp_real
+        action_real[6:9] = delta_TCP_d_pos_real
+        action_real[9:12] = delta_TCP_d_euler_real
+        action_real[12] = gripper_action_real
+        return action_real
 
     def rollout(self, 
                 preprocess_obs_for_policy_fn=None, 
@@ -162,9 +189,10 @@ class RL_Agent(object):
 
         observations = self.get_total_observations()
         o_for_agent = preprocess_obs_for_policy_fn(observations)
-        action, _ = self.policy.get_action(o_for_agent, **get_action_kwargs)
+        action_sim, _ = self.policy.get_action(o_for_agent, **get_action_kwargs)
+        action_real = self.action_transform(action_sim)
         if self.controller_type == 'OSC_POSE':
-            self.operation_space_control(action)
+            self.operation_space_control(action_real)
 
     def impedance_adapt(self, action):
         '''
