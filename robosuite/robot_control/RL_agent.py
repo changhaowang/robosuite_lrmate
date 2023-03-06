@@ -4,8 +4,8 @@ import torch
 from rlkit.torch.pytorch_util import set_gpu_mode
 from scipy.spatial.transform import Rotation as R
 
-INIT_JNT_POSE =  np.array([-0.03477543, 0.89188467, -0.57513507, 0.08426756, -0.11839037, 0.08335862])
-INIT_EEF_POSE = np.array([0.47, 0, 0.1, 5, 0, 0])
+INIT_JNT_POSE =  np.array([ 0.06569796, 0.77993625, -0.63284764, 1.47314256, -1.63438477, 1.47628377])
+INIT_EEF_POSE = np.array([0.47, -0.14, 0.0, 0, np.pi/2, -np.pi/2])
 
 DEFAULT_KP = np.array([25, 25, 90, 20, 20, 20])
 DEFAULT_KD = np.array([17, 17, 90, 20, 20, 20])
@@ -38,8 +38,8 @@ class RL_Agent(object):
         # Impedance parameters
         self.Mass = M
         self.Inertia = Inertia
-        self.ori_offset = (np.array([[0, 0, 1], [0, -1, 0], [1, 0, 0]])).T @ np.array([[0, 0, 1],[1, 0, 0], [0, 1, 0]])  # Convert the frame to gripper frame
-        self.pos_offset = np.array([-0.574, 0 , 1.202])
+        self.ori_offset = np.eye(3)
+        self.pos_offset = np.array([-0.56, 0 , 1.142]) # real -> simulation
         self.kp_limit = np.array([0, 300])
 
         # Init Robot Position
