@@ -14,7 +14,7 @@ DEFAULT_INTERTIA = np.array([0.2, 0.2, 0.2])
 
 class RL_Agent(object):
     '''
-    RL_Agent learned from the simulation
+    Execute policy learned in simulation on the LRmate 200id in MSC Lab
     '''
     def __init__(self, env_name, controller_type, policy_folder, M=DEFAULT_M, Inertia=DEFAULT_INTERTIA, gpu=True, print_args=False) -> None:   
         '''
@@ -22,8 +22,10 @@ class RL_Agent(object):
                 1. env_name: environment name
                 2. controller_type: type of the controller
                 3. policy_folder: folder location of the policy
-                4. gpu: whether use gpu
-                5. print_args: whether to print information
+                4. M: 3*1, robot mass in Cartesian space
+                5. Inertia: 3*1 robot inertia in Cartesian space
+                6. gpu: whether use gpu
+                7. print_args: whether to print information
         '''
         self.controller = robot_controller()
         self.env_name = env_name
@@ -143,8 +145,11 @@ class RL_Agent(object):
     def operation_space_control(self, action):
         '''
         Operational space control for robot
+        Notice:
+            1. The implementation of admittance control in simulink is different from the controller in mujoco
         Args: 
             action [13 * 1]: stiffness + (delta) tcp pos + (delta) tcp euler (in ZYX order) + gripper_command
+
         '''
         # update robot state
         robot_state = self.get_robot_state(sim=False)
@@ -152,11 +157,27 @@ class RL_Agent(object):
         delta_tcp_euler = action[9:12]
         TCP_d_pos = robot_state[0:3] + delta_tcp_pos
         TCP_d_euler = robot_state[3:6] + delta_tcp_euler # Should be carefully, seems the implementation of the robot simulink is wrong
+        # Due to the implemntation of the simulink, we should change this euler angle order to match the simulink input
+        TCP_d_euler_simulink = self.correct_euler_order_for_simulink(TCP_d_euler)
 
         Kp = np.clip(action[0:6], self.kp_limit[0], self.kp_limit[1])
         # use critical damping
         Kd = 2 * np.sqrt(Kp)
-        self.send_commend(TCP_d_pos, TCP_d_euler, Kp, Kd)
+        self.send_commend(TCP_d_pos, TCP_d_euler_simulink, Kp, Kd)
+
+    def correct_euler_order_for_simulink(self, euler):
+        '''
+            Match the order of simulink input for Cartesian space admittance control
+            Args:
+                1. euler: 3*1 in ZYX order in radians
+            Returns:
+                1. euler: 3*1 a changed order input for simulink
+        '''
+        euler_simulink = np.zeros_like(euler)
+        euler_simulink[0] = euler[2]
+        euler_simulink[1] = euler[1]
+        euler_simulink[2] = -euler[0]
+        return euler_simulink
 
     def send_commend(self, TCP_d_pos, TCP_d_euler, Kp=DEFAULT_KP, Kd=DEFAULT_KD):
         '''
