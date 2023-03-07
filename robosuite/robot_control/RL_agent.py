@@ -72,45 +72,65 @@ class RL_Agent(object):
             self.policy.cuda()    
         self.policy.reset()     
 
-    def get_robot_state(self):
+    def get_robot_state(self, sim=True):
         '''
-        Get robot state from the ubuntu controller
-            1. Door Env: robot_joint_pos
+        Get robot state from the ubuntu controller.
+        Args:
+            1. sim: get the robot state either in the world frame of the simulation or the real world
+                Since the real robot and the simulation use different global coordinate, there is a offset.
+                We specifically distinguish the observation to be used in real and simulation
+                    a. Door Env for sim: robot_joint_pos, robot_eef_pos, robot_eef_quat
+                    b. Door Env for real: Tcp_pos, TCP_euler ('ZYX' in radians)
         '''
         self.controller.receive()
         # Decode Robot Information
-        TCP_pos = self.controller.robot_pose[0:3] + self.pos_offset
-        TCP_rotm_temp = self.controller.robot_pose[3:12].reshape([3,3]).T
-        TCP_rotm = TCP_rotm_temp @ self.ori_offset
-        TCP_euler = R.from_matrix(TCP_rotm).as_euler('xyz', degrees=True)
-        self.TCP_pose = np.hstack((TCP_pos, TCP_euler))
-        self.TCP_vel = self.controller.robot_vel
-        # Obtain force/torque information
-        TCP_wrench = self.controller.TCP_wrench
-        self.World_force = TCP_rotm @ TCP_wrench[0:3]
-        self.World_torque = TCP_rotm @ TCP_wrench[3:6]
-        robot_joint_pos = self.controller.joint_pos
-        if self.env_name == 'Door':
-            state = robot_joint_pos
-            return state
+        TCP_pos_real = self.controller.robot_pose[0:3]
+        TCP_rotm_real = self.controller.robot_pose[3:12].reshape([3,3]).T
+        TCP_euler_real = R.from_matrix(TCP_rotm_real).as_euler('ZYX', degress=False)
+        TCP_vel_real = self.controller.robot_vel
+        TCP_wrench_real = self.controller.TCP_wrench
+        robot_joint_pos_real = self.controller.joint_pos
+        # Apply transformation to get equvailent robot information in the simulation coordinate
+        TCP_pos_sim = TCP_pos_real + self.pos_offset
+        TCP_rotm_sim = TCP_rotm_real @ self.ori_offset
+        TCP_quat_sim = R.from_matrix(TCP_rotm_sim).as_quat()
+        robot_joint_pos_sim = robot_joint_pos_real
+        if sim:
+            if self.env_name == 'Door':
+                state = np.hstack((robot_joint_pos_sim, TCP_pos_sim, TCP_quat_sim))
+        else:
+            if self.env_name == 'Door':
+                state = np.hstack((TCP_pos_real, TCP_euler_real))
+        return state
 
     def set_object_state(self, object_state):
         '''
         Set required object state
-            1. Door Env: door_pos, handle_pos
+            1. Door Env: door_pos, handle_pos, hinge_qpos
         '''
         if self.env_name == 'Door':
-            self.door_pos = object_state[0:3]
-            self.handle_pos = object_state[3:]
+            self.door_pos_real = object_state[0:3]
+            self.handle_pos_real = object_state[3:6]
+            self.hinge_qpos_real = object_state[6]
 
-    def get_object_state(self):
+    def get_object_state(self, sim=True):
         '''
         Get required object state if needed.
-            1. Door Env: door_pos, handle_pos
+        Args:
+            1. sim: bool. Whether to output object state in simulation or real world frame
+        Returns:
+            1. object state: ndarray
+                1. Door Env: door_pos, handle_pos, hinge_qpos
         '''
-        if self.env_name == 'Door':
-            return np.hstack((self.door_pos, self.handle_pos))
-
+        if sim:
+            if self.env_name == 'Door':
+                door_pos_sim = self.door_pos_real + self.pos_offset
+                handle_pos_sim = self.handle_pos_real + self.pos_offset
+                hinge_qpos_sim = self.hinge_qpos_real
+                return np.hstack((door_pos_sim, handle_pos_sim, hinge_qpos_sim))
+        else:
+            return np.hstack((self.door_pos_real, self.handle_pos_real, self.hinge_qpos_real))
+        
     def get_total_observations(self):
         '''
         Get the required observations (door pos, handle pos, robot joint pos)
@@ -124,14 +144,14 @@ class RL_Agent(object):
         '''
         Operational space control for robot
         Args: 
-            action [13 * 1]: stiffness + (delta) tcp pos + (delta) tcp euler (in YZX order) + gripper_command
+            action [13 * 1]: stiffness + (delta) tcp pos + (delta) tcp euler (in ZYX order) + gripper_command
         '''
         # update robot state
-        self.get_robot_state()
+        robot_state = self.get_robot_state(sim=False)
         delta_tcp_pos = action[6:9]
         delta_tcp_euler = action[9:12]
-        TCP_d_pos = self.TCP_pose[0:3] + delta_tcp_pos
-        TCP_d_euler = self.TCP_pose[3:6] + delta_tcp_euler
+        TCP_d_pos = robot_state[0:3] + delta_tcp_pos
+        TCP_d_euler = robot_state[3:6] + delta_tcp_euler # Should be carefully, seems the implementation of the robot simulink is wrong
 
         Kp = np.clip(action[0:6], self.kp_limit[0], self.kp_limit[1])
         # use critical damping
@@ -146,9 +166,9 @@ class RL_Agent(object):
             TCP_d_euler: 3*1 end-effector orientation ('ZYX' in radians)
             TCP_d_vel: 6*1 end-effector velocity
         '''
-
         UDP_cmd = np.hstack([TCP_d_pos, TCP_d_euler, Kp, Kd, self.Mass, self.Inertia])
-        print(UDP_cmd)
+        if self.print_args:
+            print(UDP_cmd)
         self.controller.send(UDP_cmd)    
 
     def action_transform(self, action_sim):
@@ -167,7 +187,7 @@ class RL_Agent(object):
         action_real = np.zeros_like(action_sim)
         kp_real = kp_sim # may need to transform the orientation Kp
         delta_TCP_d_pos_real = delta_TCP_d_pos_sim
-        delta_TCP_d_euler_real = (R.from_euler('YZX', delta_TCP_d_euler_sim, degrees=False)).as_euler('YZX', degress=False)
+        delta_TCP_d_euler_real = (R.from_euler('YZX', delta_TCP_d_euler_sim, degrees=False)).as_euler('ZYX', degress=False)
         gripper_action_real = gripper_action_sim
 
         action_real[0:6] = kp_real
