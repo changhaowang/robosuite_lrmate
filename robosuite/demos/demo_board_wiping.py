@@ -49,7 +49,6 @@ if __name__ == "__main__":
         # Push left
         # action[0] = -0.1
         # action[0] = -0.5
-        action[4] = -0.3*np.pi
 
         observations, reward, done, info = env.step(action)
         if not render_options["headless"]:

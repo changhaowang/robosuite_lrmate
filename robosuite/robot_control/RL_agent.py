@@ -5,7 +5,7 @@ from rlkit.torch.pytorch_util import set_gpu_mode
 from scipy.spatial.transform import Rotation as R
 
 INIT_JNT_POSE =  np.array([ 0.06569796, 0.77993625, -0.63284764, 1.47314256, -1.63438477, 1.47628377])
-INIT_EEF_POSE = np.array([0.47, -0.14, 0.0, 0, np.pi/2, -np.pi/2])
+INIT_EEF_POSE = np.array([0.47, -0.14, 0.0, 0, -0.03, np.pi/2])
 
 DEFAULT_KP = np.array([25, 25, 90, 20, 20, 20])
 DEFAULT_KD = np.array([17, 17, 90, 20, 20, 20])
@@ -60,7 +60,7 @@ class RL_Agent(object):
     def init_robot_pos(self, eef_pose=INIT_EEF_POSE):
         TCP_d_POSE = eef_pose
         input('Begin to move the robot')
-        self.send_commend(TCP_d_pos=TCP_d_POSE[0:3], TCP_d_euler=TCP_d_POSE[3:])
+        self.send_commend(TCP_d_pos=TCP_d_POSE[0:3], TCP_d_euler=self.correct_euler_order_for_simulink(TCP_d_POSE[3:]))
 
     def load_policy(self):
         '''
@@ -88,7 +88,7 @@ class RL_Agent(object):
         # Decode Robot Information
         TCP_pos_real = self.controller.robot_pose[0:3]
         TCP_rotm_real = self.controller.robot_pose[3:12].reshape([3,3]).T
-        TCP_euler_real = R.from_matrix(TCP_rotm_real).as_euler('ZYX', degress=False)
+        TCP_euler_real = R.from_matrix(TCP_rotm_real).as_euler('ZYX', degrees=False)
         TCP_vel_real = self.controller.robot_vel
         TCP_wrench_real = self.controller.TCP_wrench
         robot_joint_pos_real = self.controller.joint_pos
@@ -244,12 +244,3 @@ class RL_Agent(object):
             Kp = action[0:6]
             Kd = 2 * np.sqrt(Kp)
             pass
-
-if __name__ == "__main__":
-    agent = RL_Agent(env_name='Door', controller_type='OSC_POSE', policy_folder='data/DoorLRmateOSC_POSEvariable_kp_2023_02_23_22_50_18_0000--s-0/params.pkl')
-    agent.test_robot_connection()
-    robot_state = agent.get_robot_state()
-    agent.set_object_state([0.4,0.1,0.1, 0.4,0.1,0.1])
-    for i in range(10):
-        agent.rollout()
-        print('robot state: ', robot_state)
