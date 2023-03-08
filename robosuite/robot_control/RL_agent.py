@@ -4,7 +4,6 @@ import torch
 import copy
 from rlkit.torch.pytorch_util import set_gpu_mode
 from scipy.spatial.transform import Rotation as R
-from robosuite.controllers.osc import OperationalSpaceController
 
 INIT_JNT_POSE =  np.array([ 0.06569796, 0.77993625, -0.63284764, 1.47314256, -1.63438477, 1.47628377])
 INIT_EEF_POSE = np.array([0.47, -0.14, 0.0, 0, -0.03, np.pi/2])
@@ -87,10 +86,13 @@ class RL_Agent(object):
         '''
         self.data = torch.load(self.policy_folder)
         self.policy = self.data['evaluation/policy']
-        print('Policy Loaded.')
+        if self.print_args:
+            print('Policy Loaded.')
         if self.gpu:
             set_gpu_mode(True)
-            self.policy.cuda()    
+            self.policy.cuda()
+            if self.print_args:
+                print('Set gpu mode: True')    
         self.policy.reset()     
 
     def get_robot_state(self, sim=True):
