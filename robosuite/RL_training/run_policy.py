@@ -60,6 +60,6 @@ if __name__ == "__main__":
     parser.add_argument('--H', type=int, default=500,
                         help='Max length of rollout')
     parser.add_argument('--gpu', action='store_true', default=True)
-    parser.add_argument('--render', action='store_true', default=False)
+    parser.add_argument('--render', action='store_true', default=True)
     args = parser.parse_args()
     simulate_policy(args)

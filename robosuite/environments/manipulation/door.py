@@ -371,7 +371,7 @@ class Door(SingleArmEnv):
                 return np.array([self.sim.data.qpos[self.hinge_qpos_addr]])
 
             if self.less_obs_config:
-                sensors = [door_pos, handle_pos, hinge_qpos] # for lab experiement, we only have door pos as the object observation
+                sensors = [door_pos, handle_pos, door_to_eef_pos, handle_to_eef_pos, hinge_qpos] # for lab experiement, we only have door pos as the object observation
             else:
                 sensors = [door_pos, handle_pos, door_to_eef_pos, handle_to_eef_pos, hinge_qpos]
             names = [s.__name__ for s in sensors]

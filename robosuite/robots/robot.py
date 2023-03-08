@@ -207,12 +207,15 @@ class Robot(object):
 
         # sensors = [joint_pos, joint_pos_cos, joint_pos_sin, joint_vel]
         # names = ["joint_pos", "joint_pos_cos", "joint_pos_sin", "joint_vel"]
-        sensors = [joint_pos]
-        names = ["joint_pos"]
+        # sensors = [joint_pos]
+        # names = ["joint_pos"]
+        sensors = []
+        names = []
         # We don't want to include the direct joint pos sensor outputs
         # actives = [True, True, True, True]
         # actives = [True, False, False, False]
-        actives = [True]
+        # actives = [True]
+        actives = []
 
 
         # Create observables for this robot

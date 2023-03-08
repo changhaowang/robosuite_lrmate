@@ -1,3 +1,5 @@
+# Instruction for Real Robots Experiments
+
 ## How to know the order of observation and action space for RL traniing in robosuite
 ### Observations
 1. check the file ```gym_wrapper.py``` and the ```_flatten_obs``` function can print the order of observations. However, this only tells ```object state``` and ```robot state``` order

@@ -1,8 +1,10 @@
 import numpy as np
 from ubuntu_controller import robot_controller
 import torch
+import copy
 from rlkit.torch.pytorch_util import set_gpu_mode
 from scipy.spatial.transform import Rotation as R
+from robosuite.controllers.osc import OperationalSpaceController
 
 INIT_JNT_POSE =  np.array([ 0.06569796, 0.77993625, -0.63284764, 1.47314256, -1.63438477, 1.47628377])
 INIT_EEF_POSE = np.array([0.47, -0.14, 0.0, 0, -0.03, np.pi/2])
@@ -16,7 +18,7 @@ class RL_Agent(object):
     '''
     Execute policy learned in simulation on the LRmate 200id in MSC Lab
     '''
-    def __init__(self, env_name, controller_type, policy_folder, M=DEFAULT_M, Inertia=DEFAULT_INTERTIA, gpu=True, print_args=False) -> None:   
+    def __init__(self, env_name, controller_type, policy_folder, M=DEFAULT_M, Inertia=DEFAULT_INTERTIA, override_impedance_command=False, fix_orientation=False, gpu=True, print_args=False) -> None:   
         '''
             Args: 
                 1. env_name: environment name
@@ -24,13 +26,17 @@ class RL_Agent(object):
                 3. policy_folder: folder location of the policy
                 4. M: 3*1, robot mass in Cartesian space
                 5. Inertia: 3*1 robot inertia in Cartesian space
-                6. gpu: whether use gpu
-                7. print_args: whether to print information
+                6. override_impedance_command: bool. Whether force to use the default impedance command instead of the learnt command
+                7. fix_orientation: bool. Whether to fix the orientation of the robot
+                8. gpu: whether use gpu
+                9. print_args: whether to print information
         '''
         self.controller = robot_controller()
         self.env_name = env_name
         self.controller_type = controller_type
         self.policy_folder = policy_folder
+        self.override_impedance_command = override_impedance_command
+        self.fix_orientation = fix_orientation
         self.gpu = gpu
         self.print_args = print_args
 
@@ -38,14 +44,21 @@ class RL_Agent(object):
         self.load_policy()
 
         # Impedance parameters
+        self.control_dim = 6
         self.Mass = M
         self.Inertia = Inertia
         self.ori_offset = np.eye(3)
         self.pos_offset = np.array([-0.56, 0 , 1.142]) # real -> simulation
         self.kp_limit = np.array([0, 300])
 
+        # Simulation related parameters
+        self.input_max = np.ones((self.control_dim, ))
+        self.input_min = -1 * np.ones((self.control_dim, ))
+        self.output_max = np.array([0.05, 0.05, 0.05, 0.5, 0.5, 0.5])
+        self.output_min = np.array([-0.05, -0.05, -0.05, -0.5, -0.5, -0.5])
+
         # Init Robot Position
-        self.init_robot_pos()
+        # self.init_robot_pos()
         if print_args:
             print('Environment Initialized.')
 
@@ -58,9 +71,15 @@ class RL_Agent(object):
             print('Success')
 
     def init_robot_pos(self, eef_pose=INIT_EEF_POSE):
+        '''
+        Initialize the robot pose
+        Args:
+            1. eef_pose: end effector pose (position + euler ('ZYX' in radians))
+        '''
         TCP_d_POSE = eef_pose
-        input('Begin to move the robot')
-        self.send_commend(TCP_d_pos=TCP_d_POSE[0:3], TCP_d_euler=self.correct_euler_order_for_simulink(TCP_d_POSE[3:]))
+        if self.print_args:
+            input('Begin to move the robot')
+        self.send_commend(TCP_d_pos=TCP_d_POSE[0:3], TCP_d_euler=TCP_d_POSE[3:])
 
     def load_policy(self):
         '''
@@ -94,8 +113,8 @@ class RL_Agent(object):
         robot_joint_pos_real = self.controller.joint_pos
         # Apply transformation to get equvailent robot information in the simulation coordinate
         TCP_pos_sim = TCP_pos_real + self.pos_offset
-        TCP_rotm_sim = TCP_rotm_real @ self.ori_offset
-        TCP_quat_sim = R.from_matrix(TCP_rotm_sim).as_quat()
+        self.TCP_rotm_sim = TCP_rotm_real @ self.ori_offset
+        TCP_quat_sim = R.from_matrix(self.TCP_rotm_sim).as_quat()
         robot_joint_pos_sim = robot_joint_pos_real
         if sim:
             if self.env_name == 'Door':
@@ -156,14 +175,34 @@ class RL_Agent(object):
         delta_tcp_pos = action[6:9]
         delta_tcp_euler = action[9:12]
         TCP_d_pos = robot_state[0:3] + delta_tcp_pos
-        TCP_d_euler = robot_state[3:6] + delta_tcp_euler # Should be carefully, seems the implementation of the robot simulink is wrong
+        if self.fix_orientation:
+            TCP_d_euler = robot_state[3:6]
+        else:
+            TCP_d_euler = self.get_goal_orientation(delta_tcp_euler)
+        
         # Due to the implemntation of the simulink, we should change this euler angle order to match the simulink input
-        TCP_d_euler_simulink = self.correct_euler_order_for_simulink(TCP_d_euler)
-
-        Kp = np.clip(action[0:6], self.kp_limit[0], self.kp_limit[1])
-        # use critical damping
-        Kd = 2 * np.sqrt(Kp)
+        # TCP_d_euler_simulink = self.correct_euler_order_for_simulink(TCP_d_euler)
+        TCP_d_euler_simulink = copy.deepcopy(TCP_d_euler)
+        TCP_d_euler_simulink[2] = -TCP_d_euler[2]
+        if self.override_impedance_command:
+            Kp = DEFAULT_KP
+            Kd = DEFAULT_KD
+        else:
+            Kp = np.clip(action[0:6], self.kp_limit[0], self.kp_limit[1])
+            if self.print_args:
+                print('Kp: ', Kp)
+            # use critical damping
+            Kd = 2 * np.sqrt(Kp)
         self.send_commend(TCP_d_pos, TCP_d_euler_simulink, Kp, Kd)
+
+    def get_goal_orientation(self, delta_tcp_euler):
+        '''
+        Get goal orientation in euler.
+        '''
+        delta_rotm = R.from_euler('ZYX', delta_tcp_euler, degrees=False).as_matrix()
+        rotm = delta_rotm @ self.TCP_rotm_sim
+        TCP_d_euler = R.from_matrix(rotm).as_euler('ZYX', degrees=False)
+        return TCP_d_euler
 
     def correct_euler_order_for_simulink(self, euler):
         '''
@@ -208,7 +247,7 @@ class RL_Agent(object):
         action_real = np.zeros_like(action_sim)
         kp_real = kp_sim # may need to transform the orientation Kp
         delta_TCP_d_pos_real = delta_TCP_d_pos_sim
-        delta_TCP_d_euler_real = (R.from_euler('YZX', delta_TCP_d_euler_sim, degrees=False)).as_euler('ZYX', degress=False)
+        delta_TCP_d_euler_real = (R.from_euler('YZX', delta_TCP_d_euler_sim, degrees=False)).as_euler('ZYX', degrees=False)
         gripper_action_real = gripper_action_sim
 
         action_real[0:6] = kp_real
@@ -216,6 +255,29 @@ class RL_Agent(object):
         action_real[9:12] = delta_TCP_d_euler_real
         action_real[12] = gripper_action_real
         return action_real
+
+    def scale_action(self, action):
+        """
+        Function taken from the robosuite.
+
+        Clips @action to be within self.input_min and self.input_max, and then re-scale the values to be within
+        the range self.output_min and self.output_max
+
+        Args:
+            action (Iterable): Actions to scale
+
+        Returns:
+            np.array: Re-scaled action
+        """
+        a = copy.deepcopy(action)
+        eef_action = a[6:12]
+        action_scale = abs(self.output_max - self.output_min) / abs(self.input_max - self.input_min)
+        action_output_transform = (self.output_max + self.output_min) / 2.0
+        action_input_transform = (self.input_max + self.input_min) / 2.0
+        scaled_eef_action = np.clip(eef_action, self.input_min, self.input_max)
+        transformed_eef_action = (scaled_eef_action - action_input_transform) * action_scale + action_output_transform
+        a[6:12] = transformed_eef_action
+        return a
 
     def rollout(self, 
                 preprocess_obs_for_policy_fn=None, 
@@ -231,7 +293,8 @@ class RL_Agent(object):
         observations = self.get_total_observations()
         o_for_agent = preprocess_obs_for_policy_fn(observations)
         action_sim, _ = self.policy.get_action(o_for_agent, **get_action_kwargs)
-        action_real = self.action_transform(action_sim)
+        scaled_action_sim = self.scale_action(action_sim)
+        action_real = self.action_transform(scaled_action_sim)
         if self.controller_type == 'OSC_POSE':
             self.operation_space_control(action_real)
 
