@@ -49,13 +49,13 @@ class RL_Agent(object):
         self.Inertia = Inertia
         self.ori_offset = np.eye(3)
         self.pos_offset = np.array([-0.56, 0 , 1.142]) # real -> simulation
-        self.kp_limit = np.array([0, 300])
+        self.kp_limit = np.array([20, 100])
 
         # Simulation related parameters
         self.input_max = np.ones((self.control_dim, ))
         self.input_min = -1 * np.ones((self.control_dim, ))
-        self.output_max = np.array([0.01, 0.01, 0.01, 0.02, 0.02, 0.02])
-        self.output_min = np.array([-0.01, -0.01, -0.01, -0.02, -0.02, -0.02])
+        self.output_max = np.array([0.05, 0.05, 0.05, 0.05, 0.05, 0.05])
+        self.output_min = np.array([-0.05, -0.05, -0.05, -0.05, -0.05, -0.05])
 
         # Init Robot Position
         # self.init_robot_pos()
@@ -79,7 +79,7 @@ class RL_Agent(object):
         '''
         eef_pose_real = eef_pose
         if sim_frame:
-            eef_pose_real[0:3] = eef_pose - self.pos_offset
+            eef_pose_real[0:3] = eef_pose[0:3] - self.pos_offset
         if self.print_args:
             print('Initial EEF Pose in world frame: ', eef_pose_real)
             input('Begin to move the robot')
@@ -142,6 +142,17 @@ class RL_Agent(object):
         # Decode robot information
         TCP_rotm = self.controller.robot_pose[3:12].reshape([3,3]).T
         return TCP_rotm
+
+    def get_TCP_wrench(self):
+        '''
+        Get robot end-effector wrench
+        Returns:
+            1. TCP_wrench: 6*1 ndarray. End-effector wrench
+        '''
+        self.controller.receive()
+        # Decode Robot Information
+        TCP_wrench_real = self.controller.TCP_wrench
+        return TCP_wrench_real
         
     def set_object_state(self, object_state):
         '''
@@ -153,11 +164,14 @@ class RL_Agent(object):
             self.handle_pos_real = object_state[3:6]
             self.hinge_qpos_real = object_state[6]
 
-    def track_object_state(self):
+    def update_hinge_qpos(self):
         '''
         Real-time track the object state. To handle the movement of the object.
         '''
-        pass
+        TCP_wrench = self.get_TCP_wrench()
+        if np.linalg.norm(TCP_wrench) >= 2:
+            self.hinge_qpos_real += 0.01
+        
 
     def get_object_state(self, sim_frame=True):
         '''
@@ -168,6 +182,7 @@ class RL_Agent(object):
             1. object state: ndarray
                 1. Door Env: door_pos, handle_pos, door_to_eef_pos, handle_to_eef_pos, hinge_qpos
         '''
+        # self.update_hinge_qpos()
         if sim_frame:
             if self.env_name == 'Door':
                 door_pos_sim = self.door_pos_real + self.pos_offset
@@ -288,6 +303,8 @@ class RL_Agent(object):
         # update robot state
         robot_state = self.get_robot_state(sim_frame=False)
         delta_tcp_pos = action[6:9]
+        if self.print_args:
+            print('Delta positional action: ', delta_tcp_pos)
         delta_tcp_euler = action[9:12]
         TCP_d_pos = robot_state[0:3] + delta_tcp_pos
         if self.fix_orientation:
@@ -304,6 +321,7 @@ class RL_Agent(object):
                 print('Kp: ', Kp)
             # use critical damping
             Kd = 2 * np.sqrt(Kp)
+            # Kd = DEFAULT_KD
             
         self.send_commend(TCP_d_pos, TCP_d_euler, Kp, Kd)
 

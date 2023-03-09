@@ -298,9 +298,9 @@ class Door(SingleArmEnv):
             self.placement_initializer = UniformRandomSampler(
                     name="ObjectSampler",
                     mujoco_objects=self.door,
-                    x_range=[0.07, 0.09],
+                    x_range=[-0.01, 0.01],
                     y_range=[-0.01, 0.01],
-                    rotation=(-np.pi / 2. - 0.25, -np.pi / 2.),
+                    rotation=(-np.pi / 2. -1e-6, -np.pi / 2.),# Set rotation to 0
                     rotation_axis='z',
                     ensure_object_boundary_in_range=False,
                     ensure_valid_placement=True,
