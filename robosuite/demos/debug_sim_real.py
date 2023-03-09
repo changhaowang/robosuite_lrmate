@@ -34,7 +34,7 @@ if __name__ == "__main__":
     while True:
         action = np.zeros((7,))
         # give orientational action
-        delta_euler_ZYX = np.array([0,0,np.pi/6])
+        delta_euler_ZYX = np.array([np.pi/6,0,0])
         delta_euler_YZX = R.from_euler('ZYX', delta_euler_ZYX, degrees=False).as_euler('YZX', degrees=False)
         action[3:6] = delta_euler_YZX
         observations, reward, done, info = env.step(action)
