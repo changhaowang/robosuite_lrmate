@@ -4,9 +4,10 @@ import torch
 import copy
 from rlkit.torch.pytorch_util import set_gpu_mode
 from scipy.spatial.transform import Rotation as R
+import robosuite.utils.transform_utils as T
 
-INIT_JNT_POSE =  np.array([ 0.06569796, 0.77993625, -0.63284764, 1.47314256, -1.63438477, 1.47628377])
-INIT_EEF_POSE = np.array([0.47, -0.14, 0.0, 0, -0.03, np.pi/2])
+INIT_JNT_POSE_SIM = np.array([ 0.06569796, 0.77993625, -0.63284764, 1.47314256, -1.63438477, 1.47628377])
+INIT_EEF_POSE_SIM = np.array([-0.1009748, -0.14462975, 1.05970618, -0.0390827, -0.08734996, 1.49746034])
 
 DEFAULT_KP = np.array([25, 25, 90, 20, 20, 20])
 DEFAULT_KD = np.array([17, 17, 90, 20, 20, 20])
@@ -69,15 +70,20 @@ class RL_Agent(object):
         if self.print_args:
             print('Success')
 
-    def init_robot_pos(self, eef_pose=INIT_EEF_POSE):
+    def init_robot_pos(self, eef_pose=INIT_EEF_POSE_SIM, sim_frame=True):
         '''
         Initialize the robot pose
         Args:
-            1. eef_pose: end effector pose (position + euler ('ZYX' in radians))
+            1. eef_pose: 6*1 ndarray. End effector pose (position + euler ('ZYX' in radians))
+            2. sim_frame: bool. Whether to use the frame in simulation or the real world
         '''
-        TCP_d_POSE = eef_pose
+        eef_pose_real = eef_pose
+        if sim_frame:
+            eef_pose_real[0:3] = eef_pose - self.pos_offset
         if self.print_args:
+            print('Initial EEF Pose in world frame: ', eef_pose_real)
             input('Begin to move the robot')
+        TCP_d_POSE = eef_pose_real            
         self.send_commend(TCP_d_pos=TCP_d_POSE[0:3], TCP_d_euler=TCP_d_POSE[3:])
 
     def load_policy(self):
@@ -95,11 +101,11 @@ class RL_Agent(object):
                 print('Set gpu mode: True')    
         self.policy.reset()     
 
-    def get_robot_state(self, sim=True):
+    def get_robot_state(self, sim_frame=True):
         '''
         Get robot state from the ubuntu controller.
         Args:
-            1. sim: get the robot state either in the world frame of the simulation or the real world
+            1. sim_frame: bool. Get the robot state either in the world frame of the simulation or the real world
                 Since the real robot and the simulation use different global coordinate, there is a offset.
                 We specifically distinguish the observation to be used in real and simulation
                     a. Door Env for sim: robot_eef_pos, robot_eef_quat
@@ -115,10 +121,10 @@ class RL_Agent(object):
         robot_joint_pos_real = self.controller.joint_pos
         # Apply transformation to get equvailent robot information in the simulation coordinate
         TCP_pos_sim = TCP_pos_real + self.pos_offset
-        self.TCP_rotm_sim = TCP_rotm_real @ self.ori_offset
-        TCP_quat_sim = R.from_matrix(self.TCP_rotm_sim).as_quat()
+        TCP_rotm_sim = TCP_rotm_real
+        TCP_quat_sim = R.from_matrix(TCP_rotm_sim).as_quat()
         robot_joint_pos_sim = robot_joint_pos_real
-        if sim:
+        if sim_frame:
             if self.env_name == 'Door':
                 state = np.hstack((TCP_pos_sim, TCP_quat_sim))
         else:
@@ -126,6 +132,17 @@ class RL_Agent(object):
                 state = np.hstack((TCP_pos_real, TCP_euler_real))
         return state
 
+    def get_robot_rotation_matrix(self):
+        '''
+        Get robot end-effector rotation matrix.
+        Returns:
+            1. TCP_rotm: 3*3 ndarray. End-effector orientation matrix
+        '''
+        self.controller.receive()
+        # Decode robot information
+        TCP_rotm = self.controller.robot_pose[3:12].reshape([3,3]).T
+        return TCP_rotm
+        
     def set_object_state(self, object_state):
         '''
         Set required object state
@@ -136,21 +153,27 @@ class RL_Agent(object):
             self.handle_pos_real = object_state[3:6]
             self.hinge_qpos_real = object_state[6]
 
-    def get_object_state(self, sim=True):
+    def track_object_state(self):
+        '''
+        Real-time track the object state. To handle the movement of the object.
+        '''
+        pass
+
+    def get_object_state(self, sim_frame=True):
         '''
         Get required object state if needed.
         Args:
-            1. sim: bool. Whether to output object state in simulation or real world frame
+            1. sim_frame: bool. Whether to output object state in simulation or real world frame
         Returns:
             1. object state: ndarray
                 1. Door Env: door_pos, handle_pos, door_to_eef_pos, handle_to_eef_pos, hinge_qpos
         '''
-        if sim:
+        if sim_frame:
             if self.env_name == 'Door':
                 door_pos_sim = self.door_pos_real + self.pos_offset
                 handle_pos_sim = self.handle_pos_real + self.pos_offset
                 hinge_qpos_sim = self.hinge_qpos_real
-                robot_eef_pose = self.get_robot_state(sim=True)
+                robot_eef_pose = self.get_robot_state(sim_frame=True)
                 robot_eef_pos = robot_eef_pose[0:3]
                 door_to_eef_pos = door_pos_sim - robot_eef_pos
                 handle_to_eef_pos = handle_pos_sim - robot_eef_pos
@@ -158,99 +181,52 @@ class RL_Agent(object):
         else:
             return np.hstack((self.door_pos_real, self.handle_pos_real, self.hinge_qpos_real))
         
-    def get_total_observations(self):
+    def get_total_observations(self, sim_frame=True):
         '''
         Get the required observations (door pos, handle pos, robot joint pos)
+        Args:
+            1. sim_frame: bool. Whether to output object state in simulation or real world frame
+        Returns:
+            1. observations: ndarray. 
+                a. Door Env. Containts object state and robot state
         '''
-        robot_state = self.get_robot_state()
-        object_state = self.get_object_state()
+        robot_state = self.get_robot_state(sim_frame=sim_frame)
+        object_state = self.get_object_state(sim_frame=sim_frame)
         observations = np.hstack((object_state, robot_state))
         return observations
-    
-    def operation_space_control(self, action):
-        '''
-        Operational space control for robot
-        Notice:
-            1. The implementation of admittance control in simulink is different from the controller in mujoco
-        Args: 
-            action [13 * 1]: stiffness + (delta) tcp pos + (delta) tcp euler (in ZYX order) + gripper_command
-
-        '''
-        # update robot state
-        robot_state = self.get_robot_state(sim=False)
-        delta_tcp_pos = action[6:9]
-        delta_tcp_euler = action[9:12]
-        TCP_d_pos = robot_state[0:3] + delta_tcp_pos
-        if self.fix_orientation:
-            TCP_d_euler = robot_state[3:6]
-        else:
-            TCP_d_euler = self.get_goal_orientation(delta_tcp_euler)
-
-        if self.override_impedance_command:
-            Kp = DEFAULT_KP
-            Kd = DEFAULT_KD
-        else:
-            Kp = np.clip(action[0:6], self.kp_limit[0], self.kp_limit[1])
-            if self.print_args:
-                print('Kp: ', Kp)
-            # use critical damping
-            Kd = 2 * np.sqrt(Kp)
-        self.send_commend(TCP_d_pos, TCP_d_euler, Kp, Kd)
 
     def get_goal_orientation(self, delta_tcp_euler):
         '''
         Get goal orientation in euler.
+        Args:
+            1. delta_tcp_euler: 3*1 ndarray. delta tcp euler in ZYX order in radians
+        Returns:
+            1. TCP_d_euler: 3*1 ndarray. Desried tcp euler angle in ZYX order in radians
         '''
         delta_rotm = R.from_euler('ZYX', delta_tcp_euler, degrees=False).as_matrix()
-        self.get_robot_state()
-        rotm = delta_rotm @ self.TCP_rotm_sim
-        TCP_d_euler = R.from_matrix(rotm).as_euler('ZYX', degrees=False)
+        TCP_rotm = self.get_robot_rotation_matrix()
+        TCP_d_rotm = delta_rotm @ TCP_rotm
+        TCP_d_euler = R.from_matrix(TCP_d_rotm).as_euler('ZYX', degrees=False)
         return TCP_d_euler
-
-    def correct_euler_order_for_simulink(self, euler):
-        '''
-            Match the order of simulink input for Cartesian space admittance control
-            Args:
-                1. euler: 3*1 in ZYX order in radians
-            Returns:
-                1. euler: 3*1 a changed order input for simulink
-        '''
-        euler_simulink = np.zeros_like(euler)
-        euler_simulink[0] = euler[1]
-        euler_simulink[1] = euler[0]
-        euler_simulink[2] = -euler[2]
-        return euler_simulink
-
-    def send_commend(self, TCP_d_pos, TCP_d_euler, Kp=DEFAULT_KP, Kd=DEFAULT_KD):
-        '''
-        Send command to the robot.
-        Args:
-            TCP_d_pos: 3*1 end-effector position
-            TCP_d_euler: 3*1 end-effector orientation ('ZYX' in radians)
-            TCP_d_vel: 6*1 end-effector velocity
-        '''
-        UDP_cmd = np.hstack([TCP_d_pos, TCP_d_euler, Kp, Kd, self.Mass, self.Inertia])
-        if self.print_args:
-            print(UDP_cmd)
-        self.controller.send(UDP_cmd)    
 
     def action_transform(self, action_sim):
         '''
-        Transform the action in simulation to the same frame in the real world
+        Transform the action in robosuite to the same frame in the real world
         Args: 
-            action_sim [13 * 1]: stiffness + (delta) tcp pos + (delta) tcp euler (in YZX order) + gripper_command
+            action_sim [13 * 1]: stiffness + (delta) tcp pos + (delta) tcp axisangle + gripper_command
         Returns:
             action_real [13 * 1]: stiffness + (delta) tcp pos + (delta) tcp euler (in ZYX order) + gripper_command
         '''
         kp_sim = action_sim[0:6]
         delta_TCP_d_pos_sim = action_sim[6:9]
-        delta_TCP_d_euler_sim = action_sim[9:12]
+        delta_TCP_d_axisangle_sim = action_sim[9:12]
+        delta_TCP_d_quat_sim = T.axisangle2quat(delta_TCP_d_axisangle_sim)
         gripper_action_sim = action_sim[12]
 
         action_real = np.zeros_like(action_sim)
         kp_real = kp_sim # may need to transform the orientation Kp
         delta_TCP_d_pos_real = delta_TCP_d_pos_sim
-        delta_TCP_d_euler_real = (R.from_euler('YZX', delta_TCP_d_euler_sim, degrees=False)).as_euler('ZYX', degrees=False)
+        delta_TCP_d_euler_real = (R.from_quat(delta_TCP_d_quat_sim)).as_euler('ZYX', degrees=False)
         gripper_action_real = gripper_action_sim
 
         action_real[0:6] = kp_real
@@ -293,20 +269,53 @@ class RL_Agent(object):
         if preprocess_obs_for_policy_fn is None:
             preprocess_obs_for_policy_fn = lambda x: x
 
-        observations = self.get_total_observations()
+        observations = self.get_total_observations(sim_frame=True)
         o_for_agent = preprocess_obs_for_policy_fn(observations)
         action_sim, _ = self.policy.get_action(o_for_agent, **get_action_kwargs)
         scaled_action_sim = self.scale_action(action_sim)
         action_real = self.action_transform(scaled_action_sim)
         if self.controller_type == 'OSC_POSE':
             self.operation_space_control(action_real)
+    
+    def operation_space_control(self, action):
+        '''
+        Operational space control for robot
+        Notice:
+            1. The implementation of admittance control in simulink is different from the controller in mujoco
+        Args: 
+            action [13 * 1]: stiffness + (delta) tcp pos + (delta) tcp euler (in ZYX order) + gripper_command
+        '''
+        # update robot state
+        robot_state = self.get_robot_state(sim_frame=False)
+        delta_tcp_pos = action[6:9]
+        delta_tcp_euler = action[9:12]
+        TCP_d_pos = robot_state[0:3] + delta_tcp_pos
+        if self.fix_orientation:
+            TCP_d_euler = robot_state[3:6]
+        else:
+            TCP_d_euler = self.get_goal_orientation(delta_tcp_euler)
 
-    def impedance_adapt(self, action):
-        '''
-        Sim-to-real transfer of the impedance parameters
-            Args: action [12 * 1]: stiffness + (delta) tcp pos + (delta) tcp euler
-        '''
-        if self.env_name == 'Door':
-            Kp = action[0:6]
+        if self.override_impedance_command:
+            Kp = DEFAULT_KP
+            Kd = DEFAULT_KD
+        else:
+            Kp = np.clip(action[0:6], self.kp_limit[0], self.kp_limit[1])
+            if self.print_args:
+                print('Kp: ', Kp)
+            # use critical damping
             Kd = 2 * np.sqrt(Kp)
-            pass
+            
+        self.send_commend(TCP_d_pos, TCP_d_euler, Kp, Kd)
+
+    def send_commend(self, TCP_d_pos, TCP_d_euler, Kp=DEFAULT_KP, Kd=DEFAULT_KD):
+        '''
+        Send command to the robot.
+        Args:
+            TCP_d_pos: 3*1 end-effector position
+            TCP_d_euler: 3*1 end-effector orientation ('ZYX' in radians)
+            TCP_d_vel: 6*1 end-effector velocity
+        '''
+        UDP_cmd = np.hstack([TCP_d_pos, TCP_d_euler, Kp, Kd, self.Mass, self.Inertia])
+        if self.print_args:
+            print('UDP command: ', UDP_cmd)
+        self.controller.send(UDP_cmd)    

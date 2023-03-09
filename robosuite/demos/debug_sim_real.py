@@ -1,6 +1,7 @@
 import robosuite as suite
 from robosuite.utils.input_utils import *
 from scipy.spatial.transform import Rotation as R
+import robosuite.utils.transform_utils as T
 
 if __name__ == "__main__":
     render_options = {}
@@ -31,12 +32,19 @@ if __name__ == "__main__":
     if not render_options["headless"]:
         env.viewer.set_camera(camera_id=3)
 
+    init_obs = env._get_observations()
+    init_eef_pos = init_obs['robot0_eef_pos']
+    init_eef_quat = init_obs['robot0_eef_quat']
+    init_eef_euler_ZYX = R.from_quat(init_eef_quat).as_euler('ZYX', degrees=False)
+
     while True:
+        observations = env._get_observations()
         action = np.zeros((7,))
         # give orientational action
-        delta_euler_ZYX = np.array([np.pi/6,0,0])
-        delta_euler_YZX = R.from_euler('ZYX', delta_euler_ZYX, degrees=False).as_euler('YZX', degrees=False)
-        action[3:6] = delta_euler_YZX
+        delta_euler_ZYX = np.array([0,0,np.pi/6])
+        delta_quat = R.from_euler('ZYX', delta_euler_ZYX, degrees=False).as_quat()
+        delta_axis_angle = T.quat2axisangle(delta_quat)
+        action[3:6] = delta_axis_angle
         observations, reward, done, info = env.step(action)
         if not render_options["headless"]:
             env.render()
