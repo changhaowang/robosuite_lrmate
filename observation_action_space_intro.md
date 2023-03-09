@@ -13,7 +13,7 @@
 ### Order of Euler Angles
 1. The orientation for OSC_POSE is defined by ```axisangle``` in robosuite
 2. Euler angle for observation used in simulink is defined in ```ZYX``` order in radians
-3. ~~Euler angle for cartesian space impedance control is not clear, since the implementation is a bit messy. After converting everything in euler in ```ZYX``` in radians, we should change the order of the action to match the implementation of simulink. To be more specific, real robot [3, 2, -1] <- actually ```ZYX``` euler [1, 2, 3]~~
+3. (fixed in the admittance controller folder) ~~Euler angle for cartesian space impedance control is not clear, since the implementation is a bit messy. After converting everything in euler in ```ZYX``` in radians, we should change the order of the action to match the implementation of simulink. To be more specific, real robot [3, 2, -1] <- actually ```ZYX``` euler [1, 2, 3]~~
 
 ## Observation and Action space for each trianing environment
 ### Door Env
