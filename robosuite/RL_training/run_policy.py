@@ -56,10 +56,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--file', type=str,
                         help='path to the snapshot file',
-                        default='data/DoorLRmateOSC-POSEvariable-kp/DoorLRmateOSC_POSEvariable_kp_2023_01_27_23_21_00_0000--s-0/params.pkl')
+                        default='rlkit/data/DoorLRmateOSC-POSEvariable-kp/DoorLRmateOSC_POSEvariable_kp_2023_03_07_16_51_16_0000--s-0/params.pkl')
     parser.add_argument('--H', type=int, default=500,
                         help='Max length of rollout')
     parser.add_argument('--gpu', action='store_true', default=True)
-    parser.add_argument('--render', action='store_true', default=False)
+    parser.add_argument('--render', action='store_true', default=True)
     args = parser.parse_args()
     simulate_policy(args)

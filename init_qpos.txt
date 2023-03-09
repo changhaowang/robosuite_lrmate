@@ -1,5 +1,5 @@
 Observation: can be seen in _setup_observables function in each environment file (like door.py)
-Action: gripper dim + kp kd + position velcocity. Can be seen in action_limits function in single_arm.py, and control_limits function in the controller file
+Action:kp kd + position velcocity + gripper. Can be seen in action_limits function in single_arm.py, and control_limits function in the controller file
 
 
 initial_qpos for different tasks:

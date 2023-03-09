@@ -371,7 +371,7 @@ class Door(SingleArmEnv):
                 return np.array([self.sim.data.qpos[self.hinge_qpos_addr]])
 
             if self.less_obs_config:
-                sensors = [door_pos, handle_pos] # for lab experiement, we only have door pos as the object observation
+                sensors = [door_pos, handle_pos, door_to_eef_pos, handle_to_eef_pos, hinge_qpos] # for lab experiement, we only have door pos as the object observation
             else:
                 sensors = [door_pos, handle_pos, door_to_eef_pos, handle_to_eef_pos, hinge_qpos]
             names = [s.__name__ for s in sensors]
@@ -393,10 +393,10 @@ class Door(SingleArmEnv):
                     sampling_rate=self.control_freq,
                 )
         ## Check observation name and dimensions
-        # obs_dim = 0
-        # for key, value in observables.items():
-        #     obs_dim += value._data_shape[0]
-        #     print(value.name)
+        obs_dim = 0
+        for key, value in observables.items():
+            obs_dim += value._data_shape[0]
+            # print(value.name)
         return observables
 
     def _reset_internal(self):

@@ -244,6 +244,7 @@ class SingleArm(Manipulator):
         gripper_action = None
         if self.has_gripper:
             gripper_action = action[self.controller.control_dim:]  # all indexes past controller dimension indexes
+            gripper_action = np.array([0.0]) # always set gripper open
             arm_action = action[:self.controller.control_dim]
         else:
             arm_action = action
@@ -315,10 +316,10 @@ class SingleArm(Manipulator):
         def eef_quat(obs_cache):
             return T.convert_quat(self.sim.data.get_body_xquat(self.robot_model.eef_name), to="xyzw")
             
-        # sensors = [eef_pos, eef_quat]
-        # names = [f"{pf}eef_pos", f"{pf}eef_quat"]
-        sensors = []
-        names = []
+        sensors = [eef_pos, eef_quat]
+        names = [f"{pf}eef_pos", f"{pf}eef_quat"]
+        # sensors = []
+        # names = []
 
         # add in gripper sensors if this robot has a gripper
         if self.has_gripper:
