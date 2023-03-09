@@ -31,8 +31,8 @@ class LRmate(ManipulatorModel):
 
     @property
     def init_qpos(self):
-        # return np.array([0.0, 0.0, 0.0, 0.0, -np.pi/2, 0.0])
-        return np.array([ 0.06569796,  0.77993625, -0.63284764,  1.47314256, -1.63438477, 1.47628377])# Door environment
+        return np.array([0.0, 0.0, 0.0, 0.0, -np.pi/2, 0.0])
+        # return np.array([ 0.06569796,  0.77993625, -0.63284764,  1.47314256, -1.63438477, 1.47628377])# Door environment
         # return np.array([-0.03477543, 0.89188467, -0.57513507, 0.08426756, -0.11839037, 0.08335862]) # wipe environment
 
 

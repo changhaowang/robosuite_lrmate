@@ -4,7 +4,7 @@
 ### Observations
 1. check the file ```gym_wrapper.py``` and the ```_flatten_obs``` function can print the order of observations. However, this only tells ```object state``` and ```robot state``` order
 2. Then check ```_get_observations``` function in the ```base.py``` to see the observation order
-3. Normally, ```object_state``` goes first, which order is ```door_pos```, ```handle_pos```, ```hinge_qpos```. Then comes the ```robot_related_state``` with the order of ```robot_joint_pos```, ```robot_eef_pos```, and ```robot_eef_quat```.
+3. Normally, ```object_state``` goes first, which order is ```door_pos```, ```handle_pos```, ```door_to_eef_pos```, ```handle_to_eef_pos```, ```hinge_qpos```. Then comes the ```robot_related_state``` with the order of ```(robot_joint_pos)```, ```robot_eef_pos```, and ```robot_eef_quat```.
 ### Actions
 1. check the function ```action_limits``` in the file ```singgle_arm.py```, and the ```control_limits``` in the corresponding controller file.
 2. Normally, ```control_limits``` goes first, which contains ```kp``` value in 6 dimension then ```action``` in operational space. Then the gripper action.

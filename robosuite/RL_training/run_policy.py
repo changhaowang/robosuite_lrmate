@@ -56,7 +56,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--file', type=str,
                         help='path to the snapshot file',
-                        default='data/03_05/DoorLRmateOSC-POSEvariable-kp/DoorLRmateOSC_POSEvariable_kp_2023_03_05_16_28_50_0000--s-0/params.pkl')
+                        default='rlkit/data/DoorLRmateOSC-POSEvariable-kp/DoorLRmateOSC_POSEvariable_kp_2023_03_07_16_51_16_0000--s-0/params.pkl')
     parser.add_argument('--H', type=int, default=500,
                         help='Max length of rollout')
     parser.add_argument('--gpu', action='store_true', default=True)

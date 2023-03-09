@@ -53,8 +53,8 @@ class RL_Agent(object):
         # Simulation related parameters
         self.input_max = np.ones((self.control_dim, ))
         self.input_min = -1 * np.ones((self.control_dim, ))
-        self.output_max = np.array([0.05, 0.05, 0.05, 0.5, 0.5, 0.5])
-        self.output_min = np.array([-0.05, -0.05, -0.05, -0.5, -0.5, -0.5])
+        self.output_max = np.array([0.01, 0.01, 0.01, 0.02, 0.02, 0.02])
+        self.output_min = np.array([-0.01, -0.01, -0.01, -0.02, -0.02, -0.02])
 
         # Init Robot Position
         # self.init_robot_pos()
@@ -102,7 +102,7 @@ class RL_Agent(object):
             1. sim: get the robot state either in the world frame of the simulation or the real world
                 Since the real robot and the simulation use different global coordinate, there is a offset.
                 We specifically distinguish the observation to be used in real and simulation
-                    a. Door Env for sim: robot_joint_pos, robot_eef_pos, robot_eef_quat
+                    a. Door Env for sim: robot_eef_pos, robot_eef_quat
                     b. Door Env for real: Tcp_pos, TCP_euler ('ZYX' in radians)
         '''
         self.controller.receive()
@@ -120,7 +120,7 @@ class RL_Agent(object):
         robot_joint_pos_sim = robot_joint_pos_real
         if sim:
             if self.env_name == 'Door':
-                state = np.hstack((robot_joint_pos_sim, TCP_pos_sim, TCP_quat_sim))
+                state = np.hstack((TCP_pos_sim, TCP_quat_sim))
         else:
             if self.env_name == 'Door':
                 state = np.hstack((TCP_pos_real, TCP_euler_real))
@@ -143,14 +143,18 @@ class RL_Agent(object):
             1. sim: bool. Whether to output object state in simulation or real world frame
         Returns:
             1. object state: ndarray
-                1. Door Env: door_pos, handle_pos, hinge_qpos
+                1. Door Env: door_pos, handle_pos, door_to_eef_pos, handle_to_eef_pos, hinge_qpos
         '''
         if sim:
             if self.env_name == 'Door':
                 door_pos_sim = self.door_pos_real + self.pos_offset
                 handle_pos_sim = self.handle_pos_real + self.pos_offset
                 hinge_qpos_sim = self.hinge_qpos_real
-                return np.hstack((door_pos_sim, handle_pos_sim, hinge_qpos_sim))
+                robot_eef_pose = self.get_robot_state(sim=True)
+                robot_eef_pos = robot_eef_pose[0:3]
+                door_to_eef_pos = door_pos_sim - robot_eef_pos
+                handle_to_eef_pos = handle_pos_sim - robot_eef_pos
+                return np.hstack((door_pos_sim, handle_pos_sim, door_to_eef_pos, handle_to_eef_pos, hinge_qpos_sim))
         else:
             return np.hstack((self.door_pos_real, self.handle_pos_real, self.hinge_qpos_real))
         
@@ -181,11 +185,7 @@ class RL_Agent(object):
             TCP_d_euler = robot_state[3:6]
         else:
             TCP_d_euler = self.get_goal_orientation(delta_tcp_euler)
-        
-        # Due to the implemntation of the simulink, we should change this euler angle order to match the simulink input
-        # TCP_d_euler_simulink = self.correct_euler_order_for_simulink(TCP_d_euler)
-        TCP_d_euler_simulink = copy.deepcopy(TCP_d_euler)
-        TCP_d_euler_simulink[2] = -TCP_d_euler[2]
+
         if self.override_impedance_command:
             Kp = DEFAULT_KP
             Kd = DEFAULT_KD
@@ -195,13 +195,14 @@ class RL_Agent(object):
                 print('Kp: ', Kp)
             # use critical damping
             Kd = 2 * np.sqrt(Kp)
-        self.send_commend(TCP_d_pos, TCP_d_euler_simulink, Kp, Kd)
+        self.send_commend(TCP_d_pos, TCP_d_euler, Kp, Kd)
 
     def get_goal_orientation(self, delta_tcp_euler):
         '''
         Get goal orientation in euler.
         '''
         delta_rotm = R.from_euler('ZYX', delta_tcp_euler, degrees=False).as_matrix()
+        self.get_robot_state()
         rotm = delta_rotm @ self.TCP_rotm_sim
         TCP_d_euler = R.from_matrix(rotm).as_euler('ZYX', degrees=False)
         return TCP_d_euler
@@ -215,9 +216,9 @@ class RL_Agent(object):
                 1. euler: 3*1 a changed order input for simulink
         '''
         euler_simulink = np.zeros_like(euler)
-        euler_simulink[0] = euler[2]
-        euler_simulink[1] = euler[1]
-        euler_simulink[2] = -euler[0]
+        euler_simulink[0] = euler[1]
+        euler_simulink[1] = euler[0]
+        euler_simulink[2] = -euler[2]
         return euler_simulink
 
     def send_commend(self, TCP_d_pos, TCP_d_euler, Kp=DEFAULT_KP, Kd=DEFAULT_KD):
