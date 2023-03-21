@@ -6,7 +6,7 @@ import robosuite.utils.transform_utils as T
 from robosuite.controllers.base_controller import Controller
 from robosuite.utils.control_utils import *
 
-# Supported impedance modes
+# Supported admittance modes (only change the desired admittance dynamics)
 IMPEDANCE_MODES = {"fixed", "variable", "variable_kp"}
 
 # TODO: Maybe better naming scheme to differentiate between input / output min / max and pos/ori limits, etc.
@@ -63,7 +63,7 @@ class OperationalSpaceAdmittanceController(Controller):
             @kp and @damping_ratio arguments. If "variable", both kp and damping_ratio will now be part of the
             controller action space, resulting in a total action space of (6 or 3) + 6 * 2. If "variable_kp", only kp
             will become variable, with damping_ratio fixed at 1 (critically damped). The resulting action space will
-            then be (6 or 3) + 6.
+            then be (6 or 3) + 6. Notice this mode is changed for admittance controller!!!
 
         kp_limits (2-list of float or 2-list of Iterable of floats): Only applicable if @impedance_mode is set to either
             "variable" or "variable_kp". This sets the corresponding min / max ranges of the controller action space
@@ -136,6 +136,8 @@ class OperationalSpaceAdmittanceController(Controller):
         kd_admittance_ori = np.diag([20, 20, 20]),
         kp_admittance=np.diag([25, 25, 90]), 
         kp_admittance_ori=np.diag([20, 20, 20]),
+        kp_admittance_limits=(20,100),
+        kd_admittance_limits=(10,100),
         **kwargs,  # does nothing; used so no error raised when dict is passed with extra terms used previously
     ):
 
@@ -181,6 +183,17 @@ class OperationalSpaceAdmittanceController(Controller):
         self.kd_admittance = kd_admittance
         self.kd_admittance_ori = kd_admittance_ori
 
+        # kp, kd admittance limits
+        self.kp_admittance_min = self.nums2array(kp_admittance_limits[0], 3)
+        self.kp_admittance_ori_min = self.nums2array(kp_admittance_limits[0], 3)
+        self.kp_admittance_max = self.nums2array(kp_admittance_limits[1], 3)
+        self.kp_admittance_ori_max = self.nums2array(kp_admittance_limits[1], 3)
+
+        self.kd_admittance_min = self.nums2array(kd_admittance_limits[0], 3)
+        self.kd_admittance_ori_min = self.nums2array(kd_admittance_limits[0], 3)
+        self.kd_admittance_max = self.nums2array(kd_admittance_limits[1], 3)
+        self.kd_admittance_ori_max = self.nums2array(kd_admittance_limits[1], 3)
+
         # Verify the proposed impedance mode is supported
         assert impedance_mode in IMPEDANCE_MODES, (
             "Error: Tried to instantiate OSC controller for unsupported "
@@ -190,7 +203,7 @@ class OperationalSpaceAdmittanceController(Controller):
         # Impedance mode
         self.impedance_mode = impedance_mode
 
-        # Add to control dim based on impedance_mode
+        # Add to control dim based on impedance_mode (changed for admittance controller)
         if self.impedance_mode == "variable":
             self.control_dim += 12
         elif self.impedance_mode == "variable_kp":
@@ -235,7 +248,7 @@ class OperationalSpaceAdmittanceController(Controller):
         acc_ori_error = np.diag(np.linalg.pinv(self.I_admittance) * (self.ee_torque - self.kd_admittance_ori * vel_ori_error - self.kp_admittance_ori * ori_error))
         acc_pos_error = np.diag(np.linalg.pinv(self.m_admittance) * (self.ee_force - self.kd_admittance * vel_pos_error - self.kp_admittance * pos_error))
 
-        dt = 1/20#self.model_timestep
+        dt = 1/20 #self.model_timestep
 
         delta_action_admittance[0:3] += 1/2 * acc_pos_error * dt * dt
         delta_action_admittance[3:6] += 1/2 * acc_ori_error * dt * dt
@@ -251,8 +264,8 @@ class OperationalSpaceAdmittanceController(Controller):
         Note that @action expected to be in the following format, based on impedance mode!
 
             :Mode `'fixed'`: [joint pos command]
-            :Mode `'variable'`: [damping_ratio values, kp values, joint pos command]
-            :Mode `'variable_kp'`: [kp values, joint pos command]
+            :Mode `'variable'`: [kd_admittance values, kp_admittance values, joint pos command]
+            :Mode `'variable_kp'`: [kd_admittance values, kp_admittance values, joint pos command]
 
         Args:
             action (Iterable): Desired relative joint position goal state
@@ -264,13 +277,16 @@ class OperationalSpaceAdmittanceController(Controller):
 
         # Parse action based on the impedance mode, and update kp / kd as necessary
         if self.impedance_mode == "variable":
-            damping_ratio, kp, delta = action[:6], action[6:12], action[12:]
-            self.kp = np.clip(kp, self.kp_min, self.kp_max)
-            self.kd = 2 * np.sqrt(self.kp) * np.clip(damping_ratio, self.damping_ratio_min, self.damping_ratio_max)
+            kd, kd_ori, kp, kp_ori, delta = action[0:3], action[3:6], action[6:9], action[9:12], action[12:]
+            self.kp_admittance = np.clip(kp, self.kp_admittance_min, self.kp_admittance_max)
+            self.kp_admittance_ori = np.clip(kp_ori, self.kp_admittance_ori_min, self.kp_admittance_ori_max)
+            self.kd_admittance = np.clip(kd, self.kd_admittance_min, self.kd_admittance_max)
+            self.kd_admittance_ori = np.clip(kd_ori, self.kd_admittance_ori_min, self.kd_admittance_ori_max)
         elif self.impedance_mode == "variable_kp":
-            kp, delta = action[:6], action[6:]
-            self.kp = np.clip(kp, self.kp_min, self.kp_max)
-            self.kd = 2 * np.sqrt(self.kp)  # critically damped
+            kp, kp_ori, delta = action[:3], action[3:6], action[6:]
+            self.kp_admittance = np.clip(kp, self.kp_admittance_min, self.kp_admittance_max)
+            self.kp_admittance_ori = np.clip(kp_ori, self.kp_admittance_ori_min, self.kp_admittance_ori_max)
+            # self.kd_admittance = 2 * np.sqrt(self.kp)  # critically damped
         else:  # This is case "fixed"
             delta = action
 
@@ -442,8 +458,8 @@ class OperationalSpaceAdmittanceController(Controller):
         Returns the following (generalized for both high and low limits), based on the impedance mode:
 
             :Mode `'fixed'`: [joint pos command]
-            :Mode `'variable'`: [damping_ratio values, kp values, joint pos command]
-            :Mode `'variable_kp'`: [kp values, joint pos command]
+            :Mode `'variable'`: [kd_admittance values, kp_admittance values, joint pos command]
+            :Mode `'variable_kp'`: [kp_admittance values, joint pos command]
 
         Returns:
             2-tuple:
@@ -452,11 +468,11 @@ class OperationalSpaceAdmittanceController(Controller):
                 - (np.array) maximum action values
         """
         if self.impedance_mode == "variable":
-            low = np.concatenate([self.damping_ratio_min, self.kp_min, self.input_min])
-            high = np.concatenate([self.damping_ratio_max, self.kp_max, self.input_max])
+            low = np.concatenate([self.kd_admittance_min, self.kd_admittance_ori_min, self.kp_admittance_min, self.kp_admittance_ori_min,self.input_min])
+            high = np.concatenate([self.kd_admittance_max, self.kd_admittance_ori_max, self.kp_admittance_max, self.kp_admittance_ori_max, self.input_max])
         elif self.impedance_mode == "variable_kp":
-            low = np.concatenate([self.kp_min, self.input_min])
-            high = np.concatenate([self.kp_max, self.input_max])
+            low = np.concatenate([self.kp_admittance_min, self.kp_admittance_ori_min, self.input_min])
+            high = np.concatenate([self.kp_admittance_max, self.kp_admittance_ori_max, self.input_max])
         else:  # This is case "fixed"
             low, high = self.input_min, self.input_max
         return low, high

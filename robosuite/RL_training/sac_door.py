@@ -17,11 +17,11 @@ from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 options = {}
 options["env_name"] = "Door"
 options["robots"] = "LRmate"
-controller_name = "OSC_POSE"
+controller_name = "OSC_ADM"
 
 # Load the desired controller
 options["controller_configs"] = suite.load_controller_config(default_controller=controller_name)
-options["controller_configs"]["impedance_mode"] = 'variable_kp'
+# options["controller_configs"]["impedance_mode"] = 'variable_kp'
 
 render_option = False
 
