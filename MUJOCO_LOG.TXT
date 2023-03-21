@@ -4,3 +4,9 @@ ERROR: GLEW initalization error: Missing GL version
 Wed Jan 18 17:03:00 2023
 ERROR: Fixed camera id is outside valid range
 
+Fri Mar 17 10:30:10 2023
+ERROR: GLEW initalization error: Missing GL version
+
+Fri Mar 17 10:30:37 2023
+ERROR: GLEW initalization error: Missing GL version
+

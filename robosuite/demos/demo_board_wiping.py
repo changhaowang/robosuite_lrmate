@@ -7,7 +7,7 @@ if __name__ == "__main__":
     render_options = {}
     options = {}
 
-    render_options["headless"] = True
+    render_options["headless"] = False
     
     options["env_name"] = "Wipe"
     options["robots"] = "LRmate"
@@ -35,9 +35,9 @@ if __name__ == "__main__":
 
     print('Begin to move down.')
 
-    while abs(env.robots[0].ee_force[-1]) <= 20:
+    while True: #abs(env.robots[0].ee_force[-1]) <= 20:
         # Push downwards
-        action = 10 * np.array([0, 0, -0.1, 0, 0, 0])
+        action = 1 * np.array([0, 0, -0.1, 0, 0, 0])
         env.step(action)
         if not render_options["headless"]:
             env.render()

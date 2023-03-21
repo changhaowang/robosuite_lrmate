@@ -13,6 +13,8 @@ build/
 develop-eggs/
 dist/
 downloads/
+mujoco-py/
+rlkit/
 eggs/
 .eggs/
 lib/
