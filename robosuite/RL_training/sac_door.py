@@ -21,7 +21,7 @@ controller_name = "OSC_ADM"
 
 # Load the desired controller
 options["controller_configs"] = suite.load_controller_config(default_controller=controller_name)
-# options["controller_configs"]["impedance_mode"] = 'variable_kp'
+# options["controller_configs"]["impedance_mode"] = 'variable'
 
 render_option = False
 

@@ -115,8 +115,8 @@ class OperationalSpaceAdmittanceController(Controller):
         actuator_range,
         input_max=1,
         input_min=-1,
-        output_max=(0.05, 0.05, 0.05, 0.5, 0.5, 0.5),
-        output_min=(-0.05, -0.05, -0.05, -0.5, -0.5, -0.5),
+        output_max=(0.02, 0.02, 0.02, 0.02, 0.02, 0.02),
+        output_min=(-0.02, -0.02, -0.02, -0.02, -0.02, -0.02),
         kp=150,
         damping_ratio=1,
         impedance_mode="fixed",
@@ -137,7 +137,7 @@ class OperationalSpaceAdmittanceController(Controller):
         kp_admittance=np.diag([25, 25, 90]), 
         kp_admittance_ori=np.diag([20, 20, 20]),
         kp_admittance_limits=(20,100),
-        kd_admittance_limits=(10,100),
+        kd_admittance_limits=(15,100),
         **kwargs,  # does nothing; used so no error raised when dict is passed with extra terms used previously
     ):
 

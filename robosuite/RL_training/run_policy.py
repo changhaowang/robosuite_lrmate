@@ -27,7 +27,7 @@ def simulate_policy(args):
 
     # Load the desired controller
     options["controller_configs"] = suite.load_controller_config(default_controller=controller_name)
-    # options["controller_configs"]["impedance_mode"] = 'variable_kp'
+    # options["controller_configs"]["impedance_mode"] = 'variable'
     env = GymWrapper(suite.make(
         **options,
         has_renderer=args.render,
